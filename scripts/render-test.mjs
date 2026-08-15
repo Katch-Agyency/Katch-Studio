@@ -1,0 +1,162 @@
+/* Render smoke test — bundles the REAL app with esbuild, mounts it once in
+   jsdom and walks every route via in-process SPA navigation (one React
+   instance, like a real browser session). */
+
+import { JSDOM } from "jsdom";
+import { build } from "esbuild";
+import { pathToFileURL } from "node:url";
+import path from "node:path";
+
+const root = process.cwd();
+
+await build({
+  entryPoints: [path.join(root, "scripts/render-entry.tsx")],
+  bundle: true,
+  platform: "browser",
+  format: "esm",
+  outfile: "/tmp/katch-render-entry.mjs",
+  alias: { "@": path.join(root, "src") },
+  loader: { ".jpg": "dataurl" },
+  define: { "process.env.NODE_ENV": '"development"' },
+  logLevel: "silent",
+  target: "es2020",
+});
+
+const dom = new JSDOM('<!doctype html><html class="dark"><body><div id="root"></div></body></html>', {
+  url: "http://localhost/",
+  pretendToBeVisual: true,
+});
+globalThis.window = dom.window;
+globalThis.document = dom.window.document;
+globalThis.navigator = dom.window.navigator;
+globalThis.localStorage = dom.window.localStorage;
+globalThis.sessionStorage = dom.window.sessionStorage;
+globalThis.HTMLElement = dom.window.HTMLElement;
+globalThis.HTMLInputElement = dom.window.HTMLInputElement;
+globalThis.requestAnimationFrame = (cb) => setTimeout(cb, 0);
+globalThis.cancelAnimationFrame = (id) => clearTimeout(id);
+globalThis.MutationObserver = dom.window.MutationObserver;
+
+const windowErrors = [];
+dom.window.addEventListener("error", (e) => windowErrors.push(String(e.message).slice(0, 300)));
+dom.window.addEventListener("unhandledrejection", (e) => windowErrors.push("rejection: " + String(e.reason).slice(0, 300)));
+
+let failures = 0;
+const ok = (cond, label) => {
+  if (cond) console.log("  ✓", label);
+  else {
+    failures++;
+    console.error("  ✗", label);
+  }
+};
+
+await import(pathToFileURL("/tmp/katch-render-entry.mjs").href + "?t=" + Date.now());
+
+async function waitFor(predicate, timeout = 8000) {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    if (predicate()) return true;
+    await new Promise((r) => setTimeout(r, 120));
+  }
+  return predicate();
+}
+
+const text = () => document.body.textContent;
+const nav = (path) => dom.window.__TEST_NAV__(path);
+
+console.log("\n1) Dashboard");
+await waitFor(() => text().includes("Total Projects"));
+ok(text().includes("Total Projects"), "stats render");
+ok(text().includes("Looky Cakes"), "demo project listed");
+ok(text().includes("Bta3 7awa4y"), "Arabic demo project listed");
+ok(text().includes("New Project"), "CTA present");
+
+console.log("\n2) Projects");
+nav("/projects");
+await waitFor(() => text().includes("All statuses")); // Projects-page-only marker
+const rows = document.querySelectorAll("tbody tr").length;
+ok(rows === 3, `3 project rows (got ${rows})`);
+ok(text().includes("In Progress") && text().includes("Delivered"), "status indicators render");
+ok(text().includes("Elegant Restaurant"), "template column renders");
+
+console.log("\n3) New Project wizard");
+nav("/projects/new");
+await waitFor(() => text().includes("Tell us about the project"));
+ok(text().includes("Tell us about the project"), "step 1 renders");
+ok(text().includes("Restaurant") && text().includes("E-commerce"), "categories render");
+nav("/projects/new?template=tpl-rest-elegant");
+await waitFor(() => text().includes("Set up the brand"));
+ok(text().includes("Set up the brand"), "template deep-link opens step 3");
+ok(text().includes("Elegant Restaurant"), "template preselected");
+
+console.log("\n4) Editor + live preview (Looky Cakes)");
+const saved = JSON.parse(localStorage.getItem("katch-studio:projects:v1") ?? "[]");
+const lookyId = saved.find((p) => p.config.projectInfo.name === "Looky Cakes")?.id;
+nav(`/editor/${lookyId}`);
+await waitFor(() => text().includes("Signature Cakes"));
+ok(text().includes("Saved"), "save state indicator");
+ok(text().includes("Pages") && text().includes("Sections") && text().includes("Brand"), "editor tabs");
+ok(text().includes("Signature Cakes"), "preview renders menu content");
+ok(text().includes("Order on WhatsApp"), "preview renders CTA content");
+ok(text().includes("Chocolate Ganache"), "preview renders menu items");
+
+console.log("\n5) Arabic RTL project preview");
+const hawa4yId = saved.find((p) => p.config.projectInfo.name === "Bta3 7awa4y")?.id;
+nav(`/editor/${hawa4yId}`);
+await waitFor(() => text().includes("أشهى حواوشي في مصر"));
+ok(text().includes("أشهى حواوشي في مصر"), "Arabic hero renders");
+ok(Boolean(document.querySelector("[dir='rtl']")), "preview wrapper is RTL");
+ok(text().includes("حواوشي لحمة بلدي"), "Arabic menu items render");
+
+console.log("\n6) Library pages");
+nav("/templates");
+await waitFor(() => document.querySelectorAll("img").length >= 12);
+ok(document.querySelectorAll("img").length >= 12, "12 template preview images");
+ok(text().includes("Elegant Restaurant") && text().includes("Developer Portfolio"), "template names");
+nav("/sections");
+await waitFor(() => text().includes("Reservation"));
+ok(text().includes("Navbar") && text().includes("Reservation") && text().includes("Case Studies"), "section library");
+nav("/design-system");
+await waitFor(() => text().includes("Typography"));
+ok(text().includes("Typography") && text().includes("Badges & Status"), "design system");
+nav("/settings");
+await waitFor(() => text().includes("Restore demo data"));
+ok(text().includes("Workspace") && text().includes("Restore demo data"), "settings");
+
+console.log("\n7) Full-screen preview");
+nav(`/preview/${lookyId}`);
+await waitFor(() => text().includes("Cakes that make moments"));
+ok(text().includes("Cakes that make moments"), "preview page renders hero");
+
+console.log("\n8) Editor interaction (hide a section)");
+nav(`/editor/${lookyId}`);
+/* Ensure the preview page fully unmounted before interacting (v7 navigations are transition-wrapped) */
+await waitFor(() => !text().includes("Back to Editor") && text().includes("Export") && text().includes("Looky Cakes"));
+const hideBtn = [...document.querySelectorAll("button")].find((b) =>
+  (b.getAttribute("aria-label") ?? "").startsWith("Hide ")
+);
+if (hideBtn) {
+  hideBtn.click();
+  await waitFor(() => text().includes("Hidden in preview"));
+  ok(text().includes("Hidden in preview"), "hidden section flagged");
+  /* the save-state pill cycles Unsaved→Saving→Saved; assert the durable outcome */
+  await waitFor(() => text().includes("Saved"));
+  ok(text().includes("Saved"), "autosave cycle completed back to Saved");
+} else {
+  ok(false, "hide button found");
+}
+
+console.log("\n9) Persistence (draft autosave written)");
+await waitFor(() => {
+  const drafts = JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}");
+  return Boolean(drafts[lookyId]);
+});
+const drafts = JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}");
+ok(Boolean(drafts[lookyId]), "autosave draft persisted to localStorage");
+
+console.log("\n10) Runtime errors during the whole session");
+ok(windowErrors.length === 0, windowErrors.length === 0 ? "no window errors" : `${windowErrors.length} errors`);
+windowErrors.slice(0, 5).forEach((e) => console.log("  ·", e.split("\n")[0].slice(0, 160)));
+
+console.log(failures === 0 ? "\nALL RENDER CHECKS PASSED" : `\n${failures} CHECKS FAILED`);
+process.exit(failures === 0 ? 0 : 1);
