@@ -65,7 +65,7 @@ Seeded on first launch (restorable from Settings):
 - **Looky Cakes** — Elegant Restaurant template (EN, in progress)
 - **Bta3 7awa4y** — Modern Food template, full Arabic RTL content (delivered)
 - **Katch Agency Site** — Creative Agency template (in review)
-
+- add any new project
 ## Structure
 
 ```
