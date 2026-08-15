@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Database, Download, Moon, Palette, RefreshCw, Sun, Trash2 } from "lucide-react";
+import { Cloud, Database, Download, HardDrive, Moon, Palette, RefreshCw, Sun, Trash2 } from "lucide-react";
 import { useStore } from "@/app/store";
 import { useStudioTheme } from "@/app/theme";
 import { useToast } from "@/app/toast";
@@ -24,7 +24,7 @@ const ROADMAP = [
 ];
 
 export default function Settings() {
-  const { projects, resetDemoData } = useStore();
+  const { projects, resetDemoData, clearAllData, storageKind, storageLabel } = useStore();
   const { theme, toggle } = useStudioTheme();
   const { toast } = useToast();
   const [confirmReset, setConfirmReset] = useState(false);
@@ -33,13 +33,6 @@ export default function Settings() {
   const exportAll = () => {
     downloadFile("katch-studio-all-projects.json", JSON.stringify(projects, null, 2));
     toast("success", `Exported ${projects.length} projects.`);
-  };
-
-  const clearAll = () => {
-    localStorage.removeItem("katch-studio:projects:v1");
-    localStorage.removeItem("katch-studio:drafts:v1");
-    localStorage.removeItem("katch-studio:lastOpened:v1");
-    location.reload();
   };
 
   return (
@@ -95,6 +88,27 @@ export default function Settings() {
               { value: "light", label: <><Sun className="h-3.5 w-3.5" /> Light</> },
             ]}
           />
+        </div>
+      </section>
+
+      {/* Storage & sync */}
+      <section className="card mt-4 p-5">
+        <h2 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wider text-ink-muted">
+          {storageKind === "firestore" ? <Cloud className="h-4 w-4" /> : <HardDrive className="h-4 w-4" />} Storage &amp; Sync
+        </h2>
+        <div className="mt-4">
+          <p className="flex items-center gap-2 text-[14px] font-medium text-ink">
+            <span
+              className={`h-2 w-2 rounded-full ${storageKind === "firestore" ? "bg-ok" : "bg-zinc-400"}`}
+              aria-hidden
+            />
+            {storageLabel}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-ink-faint">
+            {storageKind === "firestore"
+              ? "Projects, drafts and workspace state sync to Firestore — shared across the team and safe across browsers."
+              : "Projects live in this browser only. Add Firebase variables to .env to sync to Firestore — full guide in docs/FIREBASE.md."}
+          </p>
         </div>
       </section>
 
@@ -168,9 +182,12 @@ export default function Settings() {
       <ConfirmDialog
         open={confirmClear}
         onClose={() => setConfirmClear(false)}
-        onConfirm={clearAll}
+        onConfirm={() => {
+          clearAllData();
+          toast("success", "All data cleared from storage.");
+        }}
         title="Clear all data"
-        message="All projects will be permanently removed from this browser. Export first if you need a backup."
+        message="All projects will be permanently removed from the connected storage. Export first if you need a backup."
         confirmLabel="Clear Everything"
       />
     </div>

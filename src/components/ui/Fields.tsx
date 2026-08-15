@@ -167,6 +167,42 @@ export function Toggle({
 
 /* ---------- Image picker (asset-lite: URL / upload / gallery) ---------- */
 
+const MAX_UPLOAD_BYTES = 2.5 * 1024 * 1024;
+const MAX_DIMENSION = 1600;
+const JPEG_QUALITY = 0.82;
+
+/** Downscale + recompress uploads on a canvas so project configs stay small
+ *  (localStorage quota and Firestore's 1 MiB/document limit). */
+function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const scale = Math.min(1, MAX_DIMENSION / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Canvas unavailable");
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL("image/jpeg", JPEG_QUALITY));
+      } catch (err) {
+        URL.revokeObjectURL(url);
+        reject(err);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Could not read the image"));
+    };
+    img.src = url;
+  });
+}
+
 export function ImagePicker({
   value,
   onChange,
@@ -181,7 +217,7 @@ export function ImagePicker({
   const fileRef = React.useRef<HTMLInputElement>(null);
   const [error, setError] = React.useState("");
 
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     setError("");
     if (!file) return;
@@ -189,14 +225,16 @@ export function ImagePicker({
       setError("Please choose an image file.");
       return;
     }
-    if (file.size > 2.5 * 1024 * 1024) {
+    if (file.size > MAX_UPLOAD_BYTES) {
       setError("Image is larger than 2.5 MB — please pick a smaller file.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => onChange(String(reader.result));
-    reader.onerror = () => setError("Could not read the file.");
-    reader.readAsDataURL(file);
+    try {
+      const dataUrl = await compressImage(file);
+      onChange(dataUrl);
+    } catch {
+      setError("Could not process that image — try a JPG or PNG.");
+    }
   };
 
   return (
@@ -241,7 +279,8 @@ export function ImagePicker({
             className="h-8 text-xs"
           />
           <p className="text-[11px] leading-4 text-ink-faint">
-            JPG/PNG up to 2.5 MB, or an image URL. Assets stay in the project config — ready to move to Cloudinary/Firebase Storage later.
+            Uploads are auto-optimized (≤1600px, JPEG). Assets stay in the project config — ready to move to
+            Firebase Storage or Cloudinary later.
           </p>
           {error && <p className="text-[11px] text-danger">{error}</p>}
         </div>

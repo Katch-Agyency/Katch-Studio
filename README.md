@@ -20,8 +20,8 @@ Dashboard → + New Project → Website type → Template → Brand & theme
 | Styling    | Tailwind CSS (dark-first, CSS-variable tokens)|
 | Icons      | lucide-react                                  |
 | Routing    | react-router-dom 7                            |
-| State      | React context + localStorage (no extra deps)  |
-| Persistence| `katch-studio:projects:v1` in localStorage — the storage boundary is isolated in `src/app/store.tsx` so Firestore can replace it without touching UI code |
+| State      | React context + pluggable storage adapter     |
+| Persistence| **localStorage (default) or Firestore** — env-gated via `VITE_FIREBASE_*`. The storage boundary is isolated in `src/storage/` + `src/app/store.tsx`, so local ↔ cloud switches never touch UI code. Setup guide: [`docs/FIREBASE.md`](docs/FIREBASE.md) |
 
 ## Architecture
 
@@ -41,11 +41,12 @@ Design System ─→ Reusable Components ─→ Reusable Sections ─→ Templat
 **Works today:** dashboard, projects (search/filter/duplicate/delete), the 4-step wizard, live
 preview (desktop/tablet/mobile), multi-page management, per-page sections, full content editing,
 theme & brand customization, feature toggles, SEO panel, autosave, project duplication,
-configuration + resolved-structure export, full-screen preview, RTL/Arabic websites, demo data.
+configuration + resolved-structure export, full-screen preview, RTL/Arabic websites, demo data,
+**Firestore sync (optional, env-gated — see `docs/FIREBASE.md`)**.
 
 **Planned (architected, not implemented):** automated scaffold generation (`client-project/`
-React/Vite output), Firebase Auth + Firestore, deployment pipeline, client portal, AI
-suggestions, template editing, Sentry monitoring.
+React/Vite output), Firebase Auth with real accounts & team roles, Firebase Storage for assets,
+deployment pipeline, client portal, AI suggestions, template editing, Sentry monitoring.
 
 ## Running it
 
@@ -75,6 +76,7 @@ src/
 ├── features/sections/   # the section registry
 ├── website/             # WebsiteRenderer + all section components
 ├── pages/               # dashboard, projects, wizard, editor, templates, …
+├── storage/             # localStorage & Firestore adapters (env-gated)
 ├── data/                # templates, themes, fonts, features, demo
 ├── lib/                 # projectFactory (template → project)
 ├── types/               # the full data model

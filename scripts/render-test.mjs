@@ -17,7 +17,15 @@ await build({
   outfile: "/tmp/katch-render-entry.mjs",
   alias: { "@": path.join(root, "src") },
   loader: { ".jpg": "dataurl" },
-  define: { "process.env.NODE_ENV": '"development"' },
+  /* Firebase is lazily imported only when VITE_FIREBASE_* is configured —
+     keep it out of the test bundle (and it is never exercised in tests). */
+  external: ["firebase", "firebase/*"],
+  define: {
+    "process.env.NODE_ENV": '"development"',
+    /* Vite provides import.meta.env at build time; emulate an empty env so
+       the store boots on the localStorage adapter during tests. */
+    "import.meta.env": "{}",
+  },
   logLevel: "silent",
   target: "es2020",
 });
@@ -122,6 +130,7 @@ ok(text().includes("Typography") && text().includes("Badges & Status"), "design 
 nav("/settings");
 await waitFor(() => text().includes("Restore demo data"));
 ok(text().includes("Workspace") && text().includes("Restore demo data"), "settings");
+ok(text().includes("Storage & Sync") && text().includes("Local browser storage"), "storage status shows local adapter when no Firebase env");
 
 console.log("\n7) Full-screen preview");
 nav(`/preview/${lookyId}`);
@@ -130,8 +139,14 @@ ok(text().includes("Cakes that make moments"), "preview page renders hero");
 
 console.log("\n8) Editor interaction (hide a section)");
 nav(`/editor/${lookyId}`);
-/* Ensure the preview page fully unmounted before interacting (v7 navigations are transition-wrapped) */
-await waitFor(() => !text().includes("Back to Editor") && text().includes("Export") && text().includes("Looky Cakes"));
+/* Wait for the editor (not the previous preview page) AND its sections list */
+await waitFor(() => text().includes("Export") && !text().includes("Back to Editor"));
+await waitFor(() =>
+  [...document.querySelectorAll("button")].some((b) => (b.getAttribute("aria-label") ?? "").startsWith("Hide "))
+);
+/* Let lazy panels settle, then query the button fresh — React re-renders
+   detach stale nodes and a click on a detached node is silently ignored. */
+await new Promise((r) => setTimeout(r, 400));
 const hideBtn = [...document.querySelectorAll("button")].find((b) =>
   (b.getAttribute("aria-label") ?? "").startsWith("Hide ")
 );
