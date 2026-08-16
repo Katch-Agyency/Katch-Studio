@@ -193,6 +193,19 @@ ok(text().includes("Signature Cakes"), "preview renders menu content");
 ok(text().includes("Order on WhatsApp"), "preview renders CTA content");
 ok(text().includes("Chocolate Ganache"), "preview renders menu items");
 
+console.log("\n4b) Standalone ZIP export UI");
+const exportButton = [...document.querySelectorAll("button")].find((button) => button.textContent.trim() === "Export");
+exportButton?.click();
+await waitFor(() => text().includes("Standalone React/Vite project"));
+ok(text().includes("Download ZIP"), "ZIP option extends the existing export modal");
+const zipButton = [...document.querySelectorAll("button")].find((button) => button.textContent.includes("Download ZIP"));
+zipButton?.click();
+await waitFor(() => text().includes("Include source code"));
+ok(text().includes("Looky Cakes") && text().includes("Elegant Restaurant"), "ZIP dialog summarizes the current project");
+ok(text().includes("Include downloadable assets") && text().includes("Include README"), "ZIP options render");
+ok(text().includes("Generate ZIP"), "ZIP generation action is available");
+document.querySelector("button[aria-label='Close dialog']")?.click();
+
 console.log("\n5) Arabic RTL project preview");
 const hawa4yId = saved.find((p) => p.config.projectInfo.name === "Bta3 7awa4y")?.id;
 nav(`/editor/${hawa4yId}`);
