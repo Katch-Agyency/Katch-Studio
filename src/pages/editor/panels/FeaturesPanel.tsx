@@ -60,7 +60,7 @@ export default function FeaturesPanel() {
             key={f.id}
             className={cn(
               "flex items-center gap-3 rounded-lg border p-3 transition-colors",
-              enabled ? "border-brand/40 bg-brand-muted/60" : "border-line bg-surface-1",
+              enabled ? "border-brand-ring bg-brand-muted" : "border-line bg-surface-1",
               !categoryOk && "opacity-40"
             )}
           >

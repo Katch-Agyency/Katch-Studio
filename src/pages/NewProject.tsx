@@ -18,8 +18,8 @@ import { useStore } from "@/app/store";
 import { useToast } from "@/app/toast";
 import { Button, Badge } from "@/components/ui/ui";
 import { Field, TextInput, TextArea, Select, Toggle } from "@/components/ui/Fields";
+import { Modal } from "@/components/ui/Modal";
 import { WEBSITE_CATEGORIES, TEMPLATE_FEATURES, getCategory } from "@/data/features";
-import { TEMPLATES, getTemplate } from "@/data/templates";
 import { THEME_PRESETS, getThemePreset } from "@/data/palette";
 import { SECTION_DEFINITIONS, SECTION_TYPES } from "@/features/sections/registry";
 import { SECTION_GROUPS } from "@/types";
@@ -55,39 +55,50 @@ const STEPS = ["Project Info", "Template", "Brand & Theme", "Sections & Features
 export default function NewProject() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { createProject } = useStore();
+  const { createProject, allTemplates } = useStore();
   const { toast } = useToast();
 
   /* Deep link from the Templates page: ?template=<id> */
   const deepTemplateId = searchParams.get("template");
-  const deepTemplate = deepTemplateId ? getTemplate(deepTemplateId) : undefined;
+  const deepTemplate = deepTemplateId ? allTemplates.find((t) => t.id === deepTemplateId) : undefined;
 
   const [step, setStep] = useState(deepTemplate ? 2 : 0);
-  const [draft, setDraft] = useState<WizardDraft>(() => ({
-    name: "",
-    client: "",
-    category: deepTemplate?.category ?? "restaurant",
-    description: "",
-    audience: "",
-    language: "en",
-    templateId: deepTemplate?.id ?? null,
-    businessName: "",
-    tagline: "",
-    themePresetId: deepTemplate?.themePresetId ?? "modern",
-    phone: "",
-    whatsapp: "",
-    email: "",
-    address: "",
-    sections: deepTemplate ? [...deepTemplate.defaultSections] : [],
-    features: deepTemplate ? [...deepTemplate.features] : [],
-  }));
+  const [previewTpl, setPreviewTpl] = useState<WebsiteTemplate | null>(null);
+  const [draft, setDraft] = useState<WizardDraft>(() => {
+    /* Preselect the featured template of the default category so the
+       highlighted category is honest and Continue is never a dead end. */
+    const defaultCategory = deepTemplate?.category ?? "restaurant";
+    const startTpl =
+      deepTemplate ??
+      allTemplates.filter((t) => t.category === defaultCategory).find((t) => t.featured) ??
+      allTemplates.find((t) => t.category === defaultCategory) ??
+      null;
+    return {
+      name: "",
+      client: "",
+      category: defaultCategory,
+      description: "",
+      audience: "",
+      language: "en",
+      templateId: startTpl?.id ?? null,
+      businessName: "",
+      tagline: "",
+      themePresetId: startTpl?.themePresetId ?? "modern",
+      phone: "",
+      whatsapp: "",
+      email: "",
+      address: "",
+      sections: startTpl ? [...startTpl.defaultSections] : [],
+      features: startTpl ? [...startTpl.features] : [],
+    };
+  });
 
   const set = <K extends keyof WizardDraft>(key: K, value: WizardDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
   /* Apply a deep-linked template if the URL changes while the wizard is open */
   useEffect(() => {
-    if (deepTemplate && draft.templateId !== deepTemplate.id) {
+    if (deepTemplate) {
       pickTemplate(deepTemplate);
       setStep(2);
     }
@@ -95,12 +106,12 @@ export default function NewProject() {
   }, [deepTemplate?.id]);
 
   const category = getCategory(draft.category)!;
-  const templates = useMemo(() => TEMPLATES.filter((t) => t.category === draft.category), [draft.category]);
-  const template = draft.templateId ? getTemplate(draft.templateId) : undefined;
+  const templates = useMemo(() => allTemplates.filter((t) => t.category === draft.category), [draft.category, allTemplates]);
+  const template = draft.templateId ? allTemplates.find((t) => t.id === draft.templateId) : undefined;
 
   /* When category changes, pick the first (featured) template */
   const pickCategory = (id: string) => {
-    const list = TEMPLATES.filter((t) => t.category === id);
+    const list = allTemplates.filter((t) => t.category === id);
     const tpl = list.find((t) => t.featured) ?? list[0];
     set("category", id);
     set("templateId", tpl?.id ?? null);
@@ -144,9 +155,16 @@ export default function NewProject() {
       setStep(0);
       return;
     }
+    const tpl = allTemplates.find((t) => t.id === draft.templateId);
+    if (!tpl) {
+      toast("error", "This template no longer exists — please pick another one.");
+      setStep(1);
+      return;
+    }
     const preset = getThemePreset(draft.themePresetId);
     const project = createProject({
       templateId: draft.templateId,
+      template: tpl,
       name: draft.name.trim(),
       client: draft.client.trim(),
       category: draft.category,
@@ -172,14 +190,7 @@ export default function NewProject() {
       },
       sections: draft.sections,
       features: draft.features,
-    } as never);
-    /* Filter the default section list to the wizard selection */
-    project.config.sections = project.config.sections.filter((s) => draft.sections.includes(s.type));
-    const keep = new Set(project.config.sections.map((s) => s.id));
-    project.config.pages = project.config.pages.map((p) => ({
-      ...p,
-      sections: p.sections.filter((id) => keep.has(id)),
-    }));
+    });
     toast("success", `Project “${project.config.projectInfo.name}” created.`);
     navigate(`/editor/${project.id}`);
   };
@@ -201,9 +212,9 @@ export default function NewProject() {
                   className={cn(
                     "flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold transition-colors",
                     i < step
-                      ? "cursor-pointer border-transparent bg-brand text-white"
+                      ? "cursor-pointer border-transparent bg-brand-muted text-brand-hover"
                       : i === step
-                        ? "border-brand bg-brand-muted text-brand-hover"
+                        ? "border-transparent bg-katch text-katch-ink"
                         : "cursor-default border-line-strong text-ink-faint"
                   )}
                   aria-current={i === step ? "step" : undefined}
@@ -214,7 +225,12 @@ export default function NewProject() {
                   {label}
                 </span>
               </li>
-              {i < STEPS.length - 1 && <li className="h-px w-6 bg-line-strong sm:w-10" aria-hidden />}
+              {i < STEPS.length - 1 && (
+                <li
+                  className={cn("h-px w-6 sm:w-10", i < step ? "bg-brand-ring" : "bg-line-strong")}
+                  aria-hidden
+                />
+              )}
             </React.Fragment>
           ))}
         </ol>
@@ -291,33 +307,37 @@ export default function NewProject() {
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {templates.map((tpl) => (
-              <button
+              <div
                 key={tpl.id}
-                onClick={() => pickTemplate(tpl)}
                 className={cn(
                   "card card-hover group overflow-hidden text-left transition-all",
-                  draft.templateId === tpl.id && "border-brand ring-2 ring-brand-ring"
+                  draft.templateId === tpl.id && "border-brand-ring ring-2 ring-brand-ring"
                 )}
-                aria-pressed={draft.templateId === tpl.id}
               >
-                <div className="relative aspect-[16/8] overflow-hidden bg-surface-2">
+                {/* Preview button — opens the full preview dialog */}
+                <button
+                  type="button"
+                  onClick={() => setPreviewTpl(tpl)}
+                  className="relative block aspect-[16/8] w-full overflow-hidden bg-surface-2 text-left"
+                  aria-label={`Preview ${tpl.name}`}
+                >
                   <img
                     src={tpl.previewImage}
-                    alt={`${tpl.name} preview`}
+                    alt=""
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                     loading="lazy"
                   />
-                  {tpl.featured && (
-                    <span className="absolute left-3 top-3 rounded-md bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur">
-                      Featured
-                    </span>
-                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                  <span className="absolute left-3 top-3 rounded-md bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur">
+                    {tpl.featured ? "Featured" : "Preview"}
+                  </span>
                   {draft.templateId === tpl.id && (
-                    <span className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white">
+                    <span className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-katch text-katch-ink">
                       <Check className="h-3.5 w-3.5" />
                     </span>
                   )}
-                </div>
+                </button>
+
                 <div className="p-4">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-[15px] font-semibold text-ink">{tpl.name}</h3>
@@ -331,8 +351,22 @@ export default function NewProject() {
                     <span aria-hidden>·</span>
                     <span>{tpl.features.length} features</span>
                   </div>
+                  <Button
+                    variant={draft.templateId === tpl.id ? "secondary" : "primary"}
+                    size="md"
+                    className="mt-4 w-full"
+                    onClick={() => pickTemplate(tpl)}
+                  >
+                    {draft.templateId === tpl.id ? (
+                      <>
+                        <Check className="h-4 w-4" /> Selected
+                      </>
+                    ) : (
+                      "Use Template"
+                    )}
+                  </Button>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>
@@ -428,28 +462,31 @@ export default function NewProject() {
                       const on = draft.sections.includes(t);
                       const inTemplate = template.defaultSections.includes(t);
                       return (
-                        <button
+                        <div
                           key={t}
                           onClick={() => toggleSection(t)}
                           className={cn(
-                            "flex items-start gap-2.5 rounded-lg border p-3 text-left transition-all",
+                            "flex cursor-pointer select-none items-start gap-2.5 rounded-lg border p-3 text-left transition-all",
                             on
-                              ? "border-brand/40 bg-brand-muted"
+                              ? "border-brand-ring bg-brand-muted"
                               : "border-line bg-surface-1 hover:border-line-strong",
                             !inTemplate && !on && "opacity-40"
                           )}
-                          aria-pressed={on}
                         >
-                          <Toggle
-                            checked={on}
-                            onChange={() => toggleSection(t)}
-                            label={`Toggle ${def.name}`}
-                          />
+                          {/* stopPropagation: the toggle is the accessible control;
+                              the card itself is a convenience click target */}
+                          <span onClick={(e) => e.stopPropagation()}>
+                            <Toggle
+                              checked={on}
+                              onChange={() => toggleSection(t)}
+                              label={`Toggle ${def.name}`}
+                            />
+                          </span>
                           <span className="min-w-0 flex-1">
                             <span className="block text-[13.5px] font-medium text-ink">{def.name}</span>
                             <span className="mt-0.5 block text-[11.5px] leading-4 text-ink-faint">{def.description}</span>
                           </span>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -466,21 +503,22 @@ export default function NewProject() {
               {TEMPLATE_FEATURES.filter((f) => f.categories === "all" || f.categories.includes(draft.category as never)).map((f) => {
                 const on = draft.features.includes(f.id);
                 return (
-                  <button
+                  <div
                     key={f.id}
                     onClick={() => toggleFeature(f.id)}
                     className={cn(
-                      "flex items-start gap-2.5 rounded-lg border p-3 text-left transition-all",
-                      on ? "border-brand/40 bg-brand-muted" : "border-line bg-surface-1 hover:border-line-strong"
+                      "flex cursor-pointer select-none items-start gap-2.5 rounded-lg border p-3 text-left transition-all",
+                      on ? "border-brand-ring bg-brand-muted" : "border-line bg-surface-1 hover:border-line-strong"
                     )}
-                    aria-pressed={on}
                   >
-                    <Toggle checked={on} onChange={() => toggleFeature(f.id)} label={`Toggle ${f.name}`} />
+                    <span onClick={(e) => e.stopPropagation()}>
+                      <Toggle checked={on} onChange={() => toggleFeature(f.id)} label={`Toggle ${f.name}`} />
+                    </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-[13.5px] font-medium text-ink">{f.name}</span>
                       <span className="mt-0.5 block text-[11.5px] leading-4 text-ink-faint">{f.description}</span>
                     </span>
-                  </button>
+                  </div>
                 );
               })}
             </div>
@@ -499,6 +537,72 @@ export default function NewProject() {
           </div>
         </div>
       )}
+
+      {/* Template preview dialog */}
+      <Modal
+        open={Boolean(previewTpl)}
+        onClose={() => setPreviewTpl(null)}
+        title={previewTpl?.name ?? ""}
+        description={previewTpl ? `${getCategory(previewTpl.category)?.label} · ${previewTpl.style}` : undefined}
+        size="lg"
+        footer={
+          previewTpl ? (
+            <>
+              <Button variant="ghost" onClick={() => setPreviewTpl(null)}>
+                Close
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  pickTemplate(previewTpl);
+                  setPreviewTpl(null);
+                }}
+              >
+                Use Template
+              </Button>
+            </>
+          ) : undefined
+        }
+      >
+        {previewTpl && (
+          <div className="space-y-4">
+            <div className="overflow-hidden rounded-xl border border-line bg-surface-2">
+              <img src={previewTpl.previewImage} alt="" className="aspect-[16/8] w-full object-cover" />
+            </div>
+            <p className="text-sm leading-relaxed text-ink-muted">{previewTpl.description}</p>
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">Sections</p>
+              <div className="flex flex-wrap gap-1.5">
+                {previewTpl.defaultSections.map((s) => (
+                  <span key={s} className="rounded-md border border-line-strong bg-surface-2 px-2 py-1 text-[11.5px] text-ink-muted">
+                    {SECTION_DEFINITIONS[s].name}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">Pages</p>
+                <ul className="space-y-1 text-[13px] text-ink-muted">
+                  {previewTpl.pages.map((p) => (
+                    <li key={p.name}>{p.name}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">Features</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {previewTpl.features.map((fid) => (
+                    <span key={fid} className="rounded-md border border-line-strong bg-surface-2 px-2 py-1 text-[11.5px] text-ink-muted">
+                      {TEMPLATE_FEATURES.find((f) => f.id === fid)?.name ?? fid}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Footer nav */}
       <div className="mt-8 flex items-center justify-between border-t border-line pt-5">

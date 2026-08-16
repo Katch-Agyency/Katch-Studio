@@ -3,48 +3,97 @@
 @tailwind utilities;
 
 /* ============================================================
-   Katch Studio — Design foundations
-   Dark-first premium internal tool. Theme tokens are applied
-   as CSS variables by src/app/theme.ts (light/dark via `class`).
+   Katch Studio — Design tokens
+   Dark-first premium neutral system with a single controlled
+   accent: --ks-accent #D7FF4F (the official Katch accent).
+   All tokens are CSS variables; light mode swaps values only.
    ============================================================ */
 
 :root,
 html.dark {
-  --ks-surface-0: #0b0f14;
-  --ks-surface-1: #11161d;
-  --ks-surface-2: #171d26;
-  --ks-surface-3: #1e2530;
-  --ks-ink: #e8edf4;
-  --ks-ink-muted: #97a3b4;
-  --ks-ink-faint: #5e6a7a;
-  --ks-line: rgba(148, 163, 184, 0.1);
-  --ks-line-strong: rgba(148, 163, 184, 0.18);
-  --ks-brand: #10b981;
-  --ks-brand-hover: #34d399;
-  --ks-brand-muted: rgba(16, 185, 129, 0.12);
-  --ks-brand-ring: rgba(16, 185, 129, 0.35);
-  --ks-accent: #f5b942;
-  --ks-accent-muted: rgba(245, 185, 66, 0.14);
+  /* Base */
+  --ks-bg: #0d100c;
+  --ks-surface-0: #0d100c; /* page background */
+  --ks-surface-1: #131712; /* cards, sidebar */
+  --ks-surface-2: #191d17; /* hover */
+  --ks-surface-3: #20251d; /* active / raised */
+
+  /* Ink */
+  --ks-ink: #f0f4ea;
+  --ks-ink-muted: #a3ad9d;
+  --ks-ink-faint: #68725f;
+
+  /* Lines */
+  --ks-line: rgba(238, 244, 229, 0.08);
+  --ks-line-strong: rgba(238, 244, 229, 0.14);
+
+  /* Katch accent (#D7FF4F) */
+  --ks-accent: #d7ff4f;
+  --ks-accent-hover: #e4ff83;
+  --ks-accent-ink: #151a05; /* text ON the accent — always dark */
+  --ks-brand: #d7ff4f; /* accent as text/icon on dark */
+  --ks-brand-hover: #e4ff83;
+  --ks-brand-muted: rgba(215, 255, 79, 0.1);
+  --ks-brand-ring: rgba(215, 255, 79, 0.42);
+
   color-scheme: dark;
 }
 
 html.light {
-  --ks-surface-0: #f6f7f9;
+  --ks-bg: #f6f7f3;
+  --ks-surface-0: #f6f7f3;
   --ks-surface-1: #ffffff;
-  --ks-surface-2: #ffffff;
-  --ks-surface-3: #eef0f4;
-  --ks-ink: #10151c;
-  --ks-ink-muted: #4d5a6b;
-  --ks-ink-faint: #8a95a6;
-  --ks-line: rgba(15, 23, 42, 0.09);
-  --ks-line-strong: rgba(15, 23, 42, 0.16);
-  --ks-brand: #0d9f72;
-  --ks-brand-hover: #0b8a63;
-  --ks-brand-muted: rgba(13, 159, 114, 0.1);
-  --ks-brand-ring: rgba(13, 159, 114, 0.35);
-  --ks-accent: #c98a12;
-  --ks-accent-muted: rgba(201, 138, 18, 0.12);
+  --ks-surface-2: #f0f2ea;
+  --ks-surface-3: #e7eadd;
+
+  --ks-ink: #191d14;
+  --ks-ink-muted: #5a6450;
+  --ks-ink-faint: #8d9783;
+
+  --ks-line: rgba(25, 29, 20, 0.1);
+  --ks-line-strong: rgba(25, 29, 20, 0.16);
+
+  /* Same accent fills; text/icon usages switch to a readable lime */
+  --ks-accent: #d7ff4f;
+  --ks-accent-hover: #d0f742;
+  --ks-accent-ink: #151a05;
+  --ks-brand: #6c8b00;
+  --ks-brand-hover: #587300;
+  --ks-brand-muted: rgba(108, 139, 0, 0.12);
+  --ks-brand-ring: rgba(108, 139, 0, 0.4);
+
   color-scheme: light;
+}
+
+/* ---------- RGB channels (for Tailwind /opacity modifiers) ----------
+   Tailwind cannot apply /NN opacity to plain var() colors; these
+   channel vars feed the <alpha-value> slot in tailwind.config.ts. */
+:root,
+html.dark {
+  --ks-surface-0-rgb: 13 16 12;
+  --ks-surface-1-rgb: 19 23 18;
+  --ks-surface-2-rgb: 25 29 23;
+  --ks-surface-3-rgb: 32 37 29;
+  --ks-ink-rgb: 240 244 234;
+  --ks-ink-muted-rgb: 163 173 157;
+  --ks-ink-faint-rgb: 104 114 95;
+  --ks-line-rgb: 238 244 229;
+  --ks-line-strong-rgb: 238 244 229;
+  --ks-brand-rgb: 215 255 79;
+  --ks-brand-hover-rgb: 228 255 131;
+}
+html.light {
+  --ks-surface-0-rgb: 246 247 243;
+  --ks-surface-1-rgb: 255 255 255;
+  --ks-surface-2-rgb: 240 242 234;
+  --ks-surface-3-rgb: 231 234 221;
+  --ks-ink-rgb: 25 29 20;
+  --ks-ink-muted-rgb: 90 100 80;
+  --ks-ink-faint-rgb: 141 151 131;
+  --ks-line-rgb: 25 29 20;
+  --ks-line-strong-rgb: 25 29 20;
+  --ks-brand-rgb: 108 139 0;
+  --ks-brand-hover-rgb: 88 115 0;
 }
 
 html,
@@ -111,11 +160,14 @@ h4 {
   .btn:active:not(:disabled) {
     transform: translateY(0.5px);
   }
+  /* Primary = the Katch accent, always with dark ink for contrast */
   .btn-primary {
-    @apply btn bg-brand text-white shadow-sm hover:bg-brand-hover;
+    @apply btn shadow-sm;
+    background: var(--ks-accent);
+    color: var(--ks-accent-ink);
   }
-  .btn-dark-brand {
-    @apply btn bg-[#0a0f0d] text-white shadow-sm hover:bg-[#141d18];
+  .btn-primary:hover:not(:disabled) {
+    background: var(--ks-accent-hover);
   }
   .btn-secondary {
     @apply btn border border-line-strong bg-surface-1 text-ink hover:bg-surface-2;
@@ -181,13 +233,6 @@ h4 {
   scrollbar-width: none;
 }
 
-.text-gradient {
-  background: linear-gradient(100deg, var(--ks-brand), var(--ks-accent));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
 /* Animated dots for saving state */
 @keyframes ks-blink {
   0%,
@@ -207,6 +252,29 @@ h4 {
 }
 .ks-dot:nth-child(3) {
   animation-delay: 0.3s;
+}
+
+/* Skeleton shimmer */
+.skeleton {
+  @apply animate-pulse rounded-md bg-surface-2;
+}
+
+/* Content-editor field highlight (layers-tree focus) */
+.cf-highlight {
+  animation: cf-flash 1.6s ease-out both;
+}
+@keyframes cf-flash {
+  0% {
+    box-shadow: 0 0 0 2px var(--ks-brand-ring);
+    border-radius: 8px;
+  }
+  70% {
+    box-shadow: 0 0 0 2px var(--ks-brand-ring);
+    border-radius: 8px;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
 }
 
 /* Reduce motion */

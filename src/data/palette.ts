@@ -10,13 +10,13 @@ export const THEME_PRESETS: ThemePreset[] = [
   {
     id: "modern",
     name: "Modern",
-    description: "Clean neutrals with a fresh green accent. Katch's house style.",
+    description: "Clean neutrals with a fresh lime accent. Katch's house style.",
     mode: "light",
     colors: {
-      primary: "#10b981",
-      primaryHover: "#0d9f72",
+      primary: "#84cc16",
+      primaryHover: "#65a30d",
       secondary: "#111827",
-      accent: "#f5b942",
+      accent: "#d7ff4f",
       background: "#fafaf9",
       surface: "#ffffff",
       text: "#1c1917",

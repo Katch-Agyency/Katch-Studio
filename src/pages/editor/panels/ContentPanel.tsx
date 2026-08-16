@@ -1,11 +1,11 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { MousePointerClick } from "lucide-react";
 import { useEditor } from "../editorStore";
 import { useEditorUI } from "../editorUI";
 import { SectionIcon } from "@/components/SectionIcon";
-import { Select } from "@/components/ui/Fields";
+import { Select, Toggle } from "@/components/ui/Fields";
 import { SECTION_DEFINITIONS } from "@/features/sections/registry";
-import { deepMerge } from "@/utils/helpers";
+import { cn, deepMerge } from "@/utils/helpers";
 import type { SectionInstance } from "@/types";
 import {
   CTAFields,
@@ -38,10 +38,45 @@ interface FooterColumnLike {
   title: string;
   links: FooterLinkLike[];
 }
+interface ProductLike {
+  name: string;
+  category: string;
+  price: string;
+  compareAt?: string;
+  badge?: string;
+  rating: number;
+  image: string;
+}
+interface CategoryLike {
+  label: string;
+  image: string;
+}
+interface PricingTierLike {
+  name: string;
+  price: string;
+  period: string;
+  description: string;
+  features: string[];
+  cta: { label: string; href: string; variant: "primary" | "secondary" };
+  highlighted: boolean;
+}
 
 export default function ContentPanel() {
   const { project, update } = useEditor();
-  const { activePageId, selectedSectionId, setSelectedSectionId } = useEditorUI();
+  const { activePageId, selectedSectionId, setSelectedSectionId, focusedElement, setFocusedElement } = useEditorUI();
+
+  /* Focus a content field when an element is picked in the layers tree */
+  useEffect(() => {
+    if (!focusedElement) return;
+    const el = document.getElementById(focusedElement);
+    if (el) {
+      el.scrollIntoView?.({ behavior: "smooth", block: "center" });
+      el.classList.add("cf-highlight");
+      window.setTimeout(() => el.classList.remove("cf-highlight"), 1600);
+    }
+    const t = window.setTimeout(() => setFocusedElement(null), 1800);
+    return () => window.clearTimeout(t);
+  }, [focusedElement, setFocusedElement]);
 
   const page = project.config.pages.find((p) => p.id === activePageId);
   const pageSections = useMemo(
@@ -114,6 +149,7 @@ export default function ContentPanel() {
         <>
           <p className="label">Menu links</p>
           <KeyValueField
+            id="cf-items"
             label=""
             items={c.nav ?? []}
             onChange={(nav) => setContent({ nav })}
@@ -148,17 +184,18 @@ export default function ContentPanel() {
       )}
 
       {section.type === "announcement" && (
-        <StringField label="Announcement text" value={c.text ?? ""} onChange={(text) => setContent({ text })} />
+        <StringField id="cf-description" label="Announcement text" value={c.text ?? ""} onChange={(text) => setContent({ text })} />
       )}
 
       {section.type === "hero" && (
         <>
-          <StringField label="Headline" value={c.title ?? ""} onChange={(title) => setContent({ title })} placeholder={`Welcome to ${brand.businessName}`} />
-          <StringField label="Eyebrow (small line above the headline)" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
-          <StringField label="Description" value={c.description ?? ""} onChange={(description) => setContent({ description })} area />
-          <CTAFields label="Primary button" cta={c.primaryCTA ?? { label: "", href: "#", variant: "primary" }} onChange={(primaryCTA) => setContent({ primaryCTA })} />
+          <StringField id="cf-heading" label="Headline" value={c.title ?? ""} onChange={(title) => setContent({ title })} placeholder={`Welcome to ${brand.businessName}`} />
+          <StringField id="cf-subtitle" label="Eyebrow (small line above the headline)" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringField id="cf-description" label="Description" value={c.description ?? ""} onChange={(description) => setContent({ description })} area />
+          <CTAFields id="cf-buttons" label="Primary button" cta={c.primaryCTA ?? { label: "", href: "#", variant: "primary" }} onChange={(primaryCTA) => setContent({ primaryCTA })} />
           <CTAFields label="Secondary button" cta={c.secondaryCTA ?? { label: "", href: "#", variant: "secondary" }} onChange={(secondaryCTA) => setContent({ secondaryCTA })} />
           <ImageField
+            id="cf-image"
             label="Hero image"
             value={c.image ?? ""}
             alt={c.imageAlt ?? ""}
@@ -170,7 +207,7 @@ export default function ContentPanel() {
             <p className="label">Alignment</p>
             <div className="seg">
               {(["left", "center"] as const).map((a) => (
-                <button key={a} className={c.alignment === a ? "seg-item-active" : "seg-item"} onClick={() => setContent({ alignment: a })}>
+                <button key={a} className={(c.alignment ?? "left") === a ? "seg-item-active" : "seg-item"} onClick={() => setContent({ alignment: a })}>
                   {a === "left" ? "Left / split" : "Centered"}
                 </button>
               ))}
@@ -181,19 +218,20 @@ export default function ContentPanel() {
 
       {section.type === "about" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
-          <StringField label="Story" value={c.text ?? ""} onChange={(text) => setContent({ text })} area />
-          <ImageField label="Image" value={c.image ?? ""} alt={c.imageAlt ?? ""} onChange={(image) => setContent({ image })} onAltChange={(imageAlt) => setContent({ imageAlt })} />
-          <StringListField label="Highlights" items={c.points ?? []} onChange={(points) => setContent({ points })} placeholder="e.g. Fresh-baked every morning" />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringField id="cf-description" label="Story" value={c.text ?? ""} onChange={(text) => setContent({ text })} area />
+          <ImageField id="cf-image" label="Image" value={c.image ?? ""} alt={c.imageAlt ?? ""} onChange={(image) => setContent({ image })} onAltChange={(imageAlt) => setContent({ imageAlt })} />
+          <StringListField id="cf-points" label="Highlights" items={c.points ?? []} onChange={(points) => setContent({ points })} placeholder="e.g. Fresh-baked every morning" />
         </>
       )}
 
       {(section.type === "services" || section.type === "features") && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
           <KeyValueField
+            id="cf-items"
             label="Items"
             items={c.items ?? []}
             onChange={(items) => setContent({ items })}
@@ -217,6 +255,7 @@ export default function ContentPanel() {
 
       {section.type === "stats" && (
         <KeyValueField
+          id="cf-items"
           label="Stats"
           items={c.items ?? []}
           onChange={(items) => setContent({ items })}
@@ -236,9 +275,10 @@ export default function ContentPanel() {
 
       {section.type === "process" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
           <KeyValueField
+            id="cf-items"
             label="Steps"
             items={c.steps ?? []}
             onChange={(steps) => setContent({ steps })}
@@ -261,9 +301,10 @@ export default function ContentPanel() {
 
       {section.type === "testimonials" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
           <KeyValueField
+            id="cf-items"
             label="Testimonials"
             items={c.items ?? []}
             onChange={(items) => setContent({ items })}
@@ -301,9 +342,10 @@ export default function ContentPanel() {
 
       {section.type === "faq" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
           <KeyValueField
+            id="cf-items"
             label="Questions"
             items={c.items ?? []}
             onChange={(items) => setContent({ items })}
@@ -326,9 +368,10 @@ export default function ContentPanel() {
 
       {section.type === "menu" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
           <KeyValueField<MenuCategoryLike>
+            id="cf-items"
             label="Categories"
             items={(c.categories ?? []) as MenuCategoryLike[]}
             onChange={(categories) => setContent({ categories })}
@@ -366,9 +409,10 @@ export default function ContentPanel() {
 
       {section.type === "gallery" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
           <KeyValueField
+            id="cf-items"
             label="Images"
             items={c.images ?? []}
             onChange={(images) => setContent({ images })}
@@ -396,26 +440,27 @@ export default function ContentPanel() {
 
       {section.type === "reservation" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
-          <StringField label="Note" value={c.note ?? ""} onChange={(note) => setContent({ note })} area hint="Booking goes through WhatsApp / phone — set the number in the Brand panel." />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringField id="cf-description" label="Note" value={c.note ?? ""} onChange={(note) => setContent({ note })} area hint="Booking goes through WhatsApp / phone — set the number in the Brand panel." />
         </>
       )}
 
       {section.type === "location" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
-          <StringListField label="Opening hours" items={c.hours ?? []} onChange={(hours) => setContent({ hours })} placeholder="Monday – Friday · 10:00 – 22:00" />
-          <StringField label="Map search query" value={c.mapQuery ?? ""} onChange={(mapQuery) => setContent({ mapQuery })} placeholder="Mohandiseen, Giza, Egypt" hint="Used for the embedded Google Map." />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringListField id="cf-items" label="Opening hours" items={c.hours ?? []} onChange={(hours) => setContent({ hours })} placeholder="Monday – Friday · 10:00 – 22:00" />
+          <StringField id="cf-description" label="Map search query" value={c.mapQuery ?? ""} onChange={(mapQuery) => setContent({ mapQuery })} placeholder="Mohandiseen, Giza, Egypt" hint="Used for the embedded Google Map." />
         </>
       )}
 
       {section.type === "team" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
           <KeyValueField
+            id="cf-items"
             label="Members"
             items={c.members ?? []}
             onChange={(members) => setContent({ members })}
@@ -437,9 +482,10 @@ export default function ContentPanel() {
 
       {section.type === "caseStudies" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
           <KeyValueField
+            id="cf-items"
             label="Cases"
             items={c.items ?? []}
             onChange={(items) => setContent({ items })}
@@ -465,17 +511,18 @@ export default function ContentPanel() {
 
       {section.type === "industries" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
-          <StringListField label="Industries" items={c.items ?? []} onChange={(items) => setContent({ items })} placeholder="e.g. Retail" />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringListField id="cf-items" label="Industries" items={c.items ?? []} onChange={(items) => setContent({ items })} placeholder="e.g. Retail" />
         </>
       )}
 
       {section.type === "projects" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
           <KeyValueField
+            id="cf-items"
             label="Projects"
             items={c.items ?? []}
             onChange={(items) => setContent({ items })}
@@ -499,9 +546,10 @@ export default function ContentPanel() {
 
       {section.type === "skills" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
           <KeyValueField
+            id="cf-items"
             label="Skills"
             items={c.items ?? []}
             onChange={(items) => setContent({ items })}
@@ -525,9 +573,10 @@ export default function ContentPanel() {
 
       {section.type === "experience" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
           <KeyValueField
+            id="cf-items"
             label="Experience"
             items={c.items ?? []}
             onChange={(items) => setContent({ items })}
@@ -554,26 +603,26 @@ export default function ContentPanel() {
 
       {section.type === "clients" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
-          <StringListField label="Client names" items={c.logos ?? []} onChange={(logos) => setContent({ logos })} placeholder="Client name" />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <StringListField id="cf-items" label="Client names" items={c.logos ?? []} onChange={(logos) => setContent({ logos })} placeholder="Client name" />
         </>
       )}
 
       {section.type === "cta" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
           <StringField label="Text" value={c.text ?? ""} onChange={(text) => setContent({ text })} area />
-          <CTAFields label="Primary button" cta={c.primaryCTA ?? { label: "", href: "#", variant: "primary" }} onChange={(primaryCTA) => setContent({ primaryCTA })} />
+          <CTAFields id="cf-buttons" label="Primary button" cta={c.primaryCTA ?? { label: "", href: "#", variant: "primary" }} onChange={(primaryCTA) => setContent({ primaryCTA })} />
           <CTAFields label="Secondary button" cta={c.secondaryCTA ?? { label: "", href: "#", variant: "secondary" }} onChange={(secondaryCTA) => setContent({ secondaryCTA })} />
         </>
       )}
 
       {section.type === "contact" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
-          <StringField label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
-          <div className="rounded-lg border border-line bg-surface-0/40 p-3">
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <div id="cf-info" className="rounded-lg border border-line bg-surface-0/40 p-3">
             <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-ink-faint">Contact details</p>
             <div className="grid gap-2.5">
               <StringField label="Email" value={c.info?.email ?? ""} onChange={(email) => setContent({ info: { ...c.info, email } })} />
@@ -582,7 +631,7 @@ export default function ContentPanel() {
                 <StringField label="WhatsApp" value={c.info?.whatsapp ?? ""} onChange={(whatsapp) => setContent({ info: { ...c.info, whatsapp } })} />
               </div>
               <StringField label="Address" value={c.info?.address ?? ""} onChange={(address) => setContent({ info: { ...c.info, address } })} />
-              <StringListField label="Hours" items={c.info?.hours ?? []} onChange={(hours) => setContent({ info: { ...c.info, hours } })} placeholder="Every day · 09:00 – 21:00" />
+              <StringListField id="cf-items" label="Hours" items={c.info?.hours ?? []} onChange={(hours) => setContent({ info: { ...c.info, hours } })} placeholder="Every day · 09:00 – 21:00" />
             </div>
           </div>
         </>
@@ -590,15 +639,15 @@ export default function ContentPanel() {
 
       {section.type === "newsletter" && (
         <>
-          <StringField label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
           <StringField label="Subtitle" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
         </>
       )}
 
       {section.type === "whatsapp" && (
         <>
-          <StringField label="Button label" value={c.cta?.label ?? ""} onChange={(label) => setContent({ cta: { ...(c.cta ?? { href: "", variant: "primary" as const }), label } })} />
-          <StringField label="WhatsApp number" value={c.number ?? ""} onChange={(number) => setContent({ number })} hint="Falls back to the brand WhatsApp number." />
+          <StringField id="cf-heading" label="Button label" value={c.cta?.label ?? ""} onChange={(label) => setContent({ cta: { ...(c.cta ?? { href: "", variant: "primary" as const }), label } })} />
+          <StringField id="cf-description" label="WhatsApp number" value={c.number ?? ""} onChange={(number) => setContent({ number })} hint="Falls back to the brand WhatsApp number." />
           <div>
             <p className="label">Position</p>
             <div className="seg">
@@ -614,8 +663,9 @@ export default function ContentPanel() {
 
       {section.type === "footer" && (
         <>
-          <StringField label="Copyright text" value={c.text ?? ""} onChange={(text) => setContent({ text })} />
+          <StringField id="cf-description" label="Copyright text" value={c.text ?? ""} onChange={(text) => setContent({ text })} />
           <KeyValueField<FooterColumnLike>
+            id="cf-items"
             label="Link columns"
             items={(c.columns ?? []) as FooterColumnLike[]}
             onChange={(columns) => setContent({ columns })}
@@ -641,6 +691,134 @@ export default function ContentPanel() {
                 <button className="btn-ghost btn-sm w-fit text-xs" onClick={() => updateCol({ links: [...(col.links ?? []), { label: "Link", href: "#" }] })}>
                   + Add link
                 </button>
+              </div>
+            )}
+          />
+        </>
+      )}
+
+      {section.type === "products" && (
+        <>
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <div className="flex items-center justify-between rounded-lg border border-line bg-surface-0/40 p-3">
+            <p className="text-[13px] font-medium text-ink">Show prices</p>
+            <Toggle
+              checked={c.showPrices ?? true}
+              onChange={(showPrices) => setContent({ showPrices })}
+              label="Show prices"
+            />
+          </div>
+          <KeyValueField<ProductLike>
+            id="cf-items"
+            label="Products"
+            items={(c.items ?? []) as ProductLike[]}
+            onChange={(items) => setContent({ items })}
+            newItem={() => ({ name: "New Product", category: "Category", price: "₾ 199", rating: 5, image: "" })}
+            addLabel="Add product"
+            renderItem={(item, update, remove) => (
+              <div className="grid gap-1.5">
+                <div className="grid grid-cols-2 gap-1.5">
+                  <input className="input h-8 text-[13px]" placeholder="Name" value={item.name} onChange={(e) => update({ name: e.target.value })} aria-label="Product name" />
+                  <input className="input h-8 text-[13px]" placeholder="Category" value={item.category} onChange={(e) => update({ category: e.target.value })} aria-label="Product category" />
+                </div>
+                <div className="grid grid-cols-[90px_90px_1fr_auto] items-center gap-1.5">
+                  <input className="input h-8 text-[13px]" placeholder="Price" value={item.price} onChange={(e) => update({ price: e.target.value })} aria-label="Product price" />
+                  <input className="input h-8 text-[13px]" placeholder="Was" value={item.compareAt ?? ""} onChange={(e) => update({ compareAt: e.target.value })} aria-label="Compare-at price" />
+                  <input className="input h-8 text-[13px]" placeholder="Badge (e.g. Sale)" value={item.badge ?? ""} onChange={(e) => update({ badge: e.target.value })} aria-label="Product badge" />
+                  <button className="btn-icon-sm" onClick={remove} aria-label="Remove product">
+                    <span className="text-danger">✕</span>
+                  </button>
+                </div>
+                <div className="grid grid-cols-[1fr_auto] items-center gap-1.5">
+                  <input className="input h-8 text-[13px]" placeholder="Image URL" value={item.image.startsWith("data:") ? "(uploaded)" : item.image} onChange={(e) => update({ image: e.target.value })} aria-label="Product image" />
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button key={n} onClick={() => update({ rating: n })} className={`text-sm leading-none ${item.rating >= n ? "text-accent" : "text-ink-faint"}`} aria-label={`${n} stars`}>
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          />
+        </>
+      )}
+
+      {section.type === "categories" && (
+        <>
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <KeyValueField<CategoryLike>
+            id="cf-items"
+            label="Categories"
+            items={(c.items ?? []) as CategoryLike[]}
+            onChange={(items) => setContent({ items })}
+            newItem={() => ({ label: "New Category", image: "" })}
+            addLabel="Add category"
+            renderItem={(item, update, remove) => (
+              <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-1.5">
+                <input className="input h-8 text-[13px]" placeholder="Label" value={item.label} onChange={(e) => update({ label: e.target.value })} aria-label="Category label" />
+                <input className="input h-8 text-[13px]" placeholder="Image URL" value={item.image.startsWith("data:") ? "(uploaded)" : item.image} onChange={(e) => update({ image: e.target.value })} aria-label="Category image" />
+                <button className="btn-icon-sm" onClick={remove} aria-label="Remove category">
+                  <span className="text-danger">✕</span>
+                </button>
+              </div>
+            )}
+          />
+        </>
+      )}
+
+      {section.type === "pricing" && (
+        <>
+          <StringField id="cf-heading" label="Title" value={c.title ?? ""} onChange={(title) => setContent({ title })} />
+          <StringField id="cf-subtitle" label="Eyebrow" value={c.subtitle ?? ""} onChange={(subtitle) => setContent({ subtitle })} />
+          <KeyValueField<PricingTierLike>
+            id="cf-items"
+            label="Tiers"
+            items={(c.tiers ?? []) as PricingTierLike[]}
+            onChange={(tiers) => setContent({ tiers })}
+            newItem={() => ({
+              name: "New Plan",
+              price: "$29",
+              period: "/month",
+              description: "",
+              features: ["Feature one", "Feature two"],
+              cta: { label: "Get Started", href: "#", variant: "primary" as const },
+              highlighted: false,
+            })}
+            addLabel="Add tier"
+            renderItem={(item, update, remove) => (
+              <div className="grid gap-1.5">
+                <div className="grid grid-cols-[1fr_90px_70px_auto] items-center gap-1.5">
+                  <input className="input h-8 text-[13px]" placeholder="Plan name" value={item.name} onChange={(e) => update({ name: e.target.value })} aria-label="Tier name" />
+                  <input className="input h-8 text-[13px]" placeholder="Price" value={item.price} onChange={(e) => update({ price: e.target.value })} aria-label="Tier price" />
+                  <input className="input h-8 text-[13px]" placeholder="/period" value={item.period} onChange={(e) => update({ period: e.target.value })} aria-label="Tier period" />
+                  <button className="btn-icon-sm" onClick={remove} aria-label="Remove tier">
+                    <span className="text-danger">✕</span>
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <input className="input h-8 text-[13px]" placeholder="Description" value={item.description} onChange={(e) => update({ description: e.target.value })} aria-label="Tier description" />
+                  <input className="input h-8 text-[13px]" placeholder="Button label" value={item.cta?.label ?? ""} onChange={(e) => update({ cta: { ...(item.cta ?? { href: "#", variant: "primary" as const }), label: e.target.value } })} aria-label="Tier button label" />
+                </div>
+                <textarea
+                  className="textarea min-h-[64px] text-[13px]"
+                  placeholder="Features — one per line"
+                  value={item.features.join("\n")}
+                  onChange={(e) => update({ features: e.target.value.split("\n") })}
+                  aria-label="Tier features"
+                />
+                <div className="flex items-center justify-between">
+                  <button
+                    className={cn("seg-item", item.highlighted && "seg-item-active")}
+                    onClick={() => update({ highlighted: !item.highlighted })}
+                    aria-pressed={item.highlighted}
+                  >
+                    ★ Highlighted plan
+                  </button>
+                </div>
               </div>
             )}
           />

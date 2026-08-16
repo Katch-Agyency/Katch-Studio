@@ -1,6 +1,7 @@
 export * from "./theme";
 export * from "./sections";
 export * from "./project";
+export * from "./storage";
 
 /** Utility types */
 export type ToastKind = "success" | "error" | "info";

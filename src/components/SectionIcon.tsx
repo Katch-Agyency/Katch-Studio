@@ -6,6 +6,7 @@ import {
   Factory,
   FolderKanban,
   Gauge,
+  Grid2x2,
   Handshake,
   HelpCircle,
   Image,
@@ -21,7 +22,9 @@ import {
   PanelBottom,
   Quote,
   Send,
+  ShoppingBag,
   Sparkles,
+  Tag,
   Utensils,
   Users,
   Wrench,
@@ -60,6 +63,9 @@ const MAP: Record<SectionType, LucideIcon> = {
   newsletter: Send,
   whatsapp: MessageCircle,
   footer: PanelBottom,
+  products: ShoppingBag,
+  categories: Grid2x2,
+  pricing: Tag,
 };
 
 export function SectionIcon({ type, className = "h-4 w-4" }: { type: SectionType; className?: string }) {

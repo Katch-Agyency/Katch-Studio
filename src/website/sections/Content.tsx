@@ -10,7 +10,7 @@ import type {
   TestimonialsContent,
 } from "@/types";
 import { Avatar } from "@/components/ui/ui";
-import { FeatureIcon, SectionHeading, SectionShell, SmartImage, useWebsiteTheme } from "@/website/renderer";
+import { FeatureIcon, SectionHeading, SectionShell, SmartImage, useSectionStyle, useWebsiteTheme } from "@/website/renderer";
 
 /* ============================================================
    Content sections — About, Services, Features, Stats,
@@ -19,9 +19,11 @@ import { FeatureIcon, SectionHeading, SectionShell, SmartImage, useWebsiteTheme 
 
 export function AboutSection({ content }: { content: AboutContent }) {
   const { radius } = useWebsiteTheme();
+  const { variant } = useSectionStyle();
+  const stacked = variant === "stacked";
   return (
     <SectionShell id="about">
-      <div className="grid items-center gap-10 lg:grid-cols-2">
+      <div className={`grid items-center gap-10 ${stacked ? "grid-cols-1" : "lg:grid-cols-2"}`}>
         {content.image && (
           <SmartImage
             src={content.image}
@@ -60,6 +62,34 @@ export function AboutSection({ content }: { content: AboutContent }) {
 
 function ItemGrid({ items }: { items: { icon: string; title: string; text: string }[] }) {
   const { cardCls, theme } = useWebsiteTheme();
+  const { variant } = useSectionStyle();
+  const list = variant === "list";
+
+  if (list) {
+    return (
+      <div className="mx-auto max-w-3xl divide-y" style={{ borderColor: "color-mix(in srgb, var(--wp-text) 8%, transparent)" }}>
+        {items.map((item) => (
+          <div key={item.title + item.text.slice(0, 8)} className="flex items-start gap-4 py-5 first:pt-0 last:pb-0">
+            <span
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+              style={{ background: "color-mix(in srgb, var(--wp-primary) 12%, transparent)", color: "var(--wp-primary)" }}
+            >
+              <FeatureIcon name={item.icon} className="h-4.5 h-[18px] w-[18px]" />
+            </span>
+            <div className="min-w-0">
+              <h3 className="text-[16px] font-semibold" style={{ color: "var(--wp-text)" }}>
+                {item.title}
+              </h3>
+              <p className="mt-1 text-[14px] leading-relaxed" style={{ color: "var(--wp-text-muted)" }}>
+                {item.text}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {items.map((item) => (
@@ -110,21 +140,52 @@ export function FeaturesSection({ content }: { content: FeaturesContent }) {
 }
 
 export function StatsSection({ content }: { content: StatsContent }) {
+  const { variant } = useSectionStyle();
   const items = content.items ?? [];
   if (items.length === 0) return null;
+
+  /* Band variant — full-width accent band */
+  if (variant === "band") {
+    return (
+      <section style={{ background: "var(--wp-primary)", color: "#fff" }}>
+        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-5 py-14 md:grid-cols-4 md:px-8">
+          {items.map((s) => (
+            <div key={s.label + s.value} className="text-center">
+              <p className="text-3xl font-bold md:text-4xl" style={{ fontFamily: "var(--wp-font-heading)" }}>
+                {s.value}
+              </p>
+              <p className="mt-1.5 text-[13.5px] font-medium opacity-85">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
+  /* Grid variant — cards */
   return (
-    <section style={{ background: "var(--wp-primary)", color: "#fff" }}>
-      <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-5 py-14 md:grid-cols-4 md:px-8">
+    <SectionShell id="stats">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {items.map((s) => (
-          <div key={s.label + s.value} className="text-center">
-            <p className="text-3xl font-bold md:text-4xl" style={{ fontFamily: "var(--wp-font-heading)" }}>
+          <div
+            key={s.label + s.value}
+            className="p-6 text-center"
+            style={{
+              background: "var(--wp-surface)",
+              border: "1px solid color-mix(in srgb, var(--wp-text) 8%, transparent)",
+              borderRadius: 16,
+            }}
+          >
+            <p className="text-3xl font-bold md:text-4xl" style={{ fontFamily: "var(--wp-font-heading)", color: "var(--wp-primary)" }}>
               {s.value}
             </p>
-            <p className="mt-1.5 text-[13.5px] font-medium opacity-85">{s.label}</p>
+            <p className="mt-1.5 text-[13.5px] font-medium" style={{ color: "var(--wp-text-muted)" }}>
+              {s.label}
+            </p>
           </div>
         ))}
       </div>
-    </section>
+    </SectionShell>
   );
 }
 
@@ -165,8 +226,48 @@ export function ProcessSection({ content }: { content: ProcessContent }) {
 
 export function TestimonialsSection({ content }: { content: TestimonialsContent }) {
   const { theme } = useWebsiteTheme();
+  const { variant } = useSectionStyle();
   const items = content.items ?? [];
   if (items.length === 0) return null;
+
+  /* Single variant — one large featured quote */
+  if (variant === "single") {
+    const t = items[0]!;
+    return (
+      <SectionShell id="testimonials" tone="alt">
+        <figure className="mx-auto max-w-3xl text-center">
+          <span className="text-5xl leading-none" style={{ color: "var(--wp-primary)", fontFamily: "var(--wp-font-heading)" }} aria-hidden>
+            “
+          </span>
+          <blockquote className="mt-2 text-2xl font-medium leading-relaxed md:text-[28px]" style={{ color: "var(--wp-text)", fontFamily: "var(--wp-font-heading)" }}>
+            {t.quote}
+          </blockquote>
+          <figcaption className="mt-6 flex items-center justify-center gap-3">
+            <Avatar name={t.name} size={44} />
+            <span className="text-left">
+              <span className="block text-[14.5px] font-semibold">{t.name}</span>
+              <span className="block text-xs" style={{ color: "var(--wp-text-muted)" }}>
+                {t.role}
+              </span>
+            </span>
+          </figcaption>
+          {t.rating > 0 && (
+            <div className="mt-3 flex justify-center gap-0.5" aria-label={`${t.rating} out of 5 stars`}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  className="h-4 w-4"
+                  style={{ color: i < t.rating ? "var(--wp-accent)" : "color-mix(in srgb, var(--wp-text) 18%, transparent)", fill: i < t.rating ? "var(--wp-accent)" : "none" }}
+                  aria-hidden
+                />
+              ))}
+            </div>
+          )}
+        </figure>
+      </SectionShell>
+    );
+  }
+
   return (
     <SectionShell id="testimonials">
       <SectionHeading title={content.title} subtitle={content.subtitle} center />

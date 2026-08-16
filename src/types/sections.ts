@@ -244,6 +244,55 @@ export interface FooterContent {
   columns: { title: string; links: NavItem[] }[];
 }
 
+/* ---------- E-commerce ---------- */
+
+export interface ProductItem {
+  name: string;
+  category: string;
+  price: string;
+  compareAt?: string;
+  badge?: string;
+  rating: number;
+  image: string;
+}
+
+export interface ProductsContent {
+  title: string;
+  subtitle: string;
+  items: ProductItem[];
+  showPrices: boolean;
+  columns: 3 | 4;
+}
+
+export interface CategoryItem {
+  label: string;
+  image: string;
+}
+
+export interface CategoriesContent {
+  title: string;
+  subtitle: string;
+  items: CategoryItem[];
+}
+
+/* ---------- SaaS ---------- */
+
+export interface PricingTier {
+  name: string;
+  price: string;
+  period: string;
+  description: string;
+  features: string[];
+  cta: CTA;
+  highlighted: boolean;
+}
+
+export interface PricingContent {
+  title: string;
+  subtitle: string;
+  tiers: PricingTier[];
+}
+
 export type SectionContentMap = {
   navbar: NavbarContent;
   announcement: AnnouncementContent;
@@ -271,22 +320,90 @@ export type SectionContentMap = {
   newsletter: NewsletterContent;
   whatsapp: WhatsappCtaContent;
   footer: FooterContent;
+  products: ProductsContent;
+  categories: CategoriesContent;
+  pricing: PricingContent;
 };
 
 export type SectionType = keyof SectionContentMap;
+
+/* ---------- Variants & styles (per-section design overrides) ---------- */
+
+export interface SectionVariant {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export type SpacingScale = "none" | "xs" | "sm" | "md" | "lg" | "xl";
+export type SectionBackground = "transparent" | "surface" | "subtle" | "dark";
+export type SectionMaxWidth = "sm" | "md" | "lg" | "xl" | "full";
+
+export interface SectionVisibility {
+  desktop: boolean;
+  tablet: boolean;
+  mobile: boolean;
+}
+
+/** Per-section design overrides — deep-merged over theme defaults by the renderer */
+export interface SectionStyles {
+  spacing: SpacingScale;
+  background: SectionBackground;
+  align: "left" | "center";
+  maxWidth: SectionMaxWidth;
+  visibility: SectionVisibility;
+}
+
+export interface SectionElement {
+  id: string;
+  label: string;
+  /** Anchor id of the matching content editor field */
+  anchor: string;
+}
+
+export function defaultSectionStyles(): SectionStyles {
+  return {
+    spacing: "md",
+    background: "transparent",
+    align: "left",
+    maxWidth: "xl",
+    visibility: { desktop: true, tablet: true, mobile: true },
+  };
+}
+
+export const SPACING_SCALE: { id: SpacingScale; label: string; cls: string }[] = [
+  { id: "none", label: "None", cls: "py-0" },
+  { id: "xs", label: "XS", cls: "py-6 md:py-8" },
+  { id: "sm", label: "SM", cls: "py-10 md:py-12" },
+  { id: "md", label: "MD", cls: "py-14 md:py-16" },
+  { id: "lg", label: "LG", cls: "py-16 md:py-20" },
+  { id: "xl", label: "XL", cls: "py-20 md:py-24" },
+];
 
 export interface SectionInstance {
   /** Stable per-project id */
   id: string;
   type: SectionType;
+  /** Visual variant id within the section type (default: "default") */
+  variant?: string;
   hidden: boolean;
   /** Deep-partial content — merged over the section's defaults */
   content: Partial<SectionContentMap[SectionType]>;
+  /** Design overrides — merged over defaultSectionStyles() */
+  styles?: Partial<SectionStyles>;
 }
 
 /* ---------- Registry (static, per section type) ---------- */
 
-export type SectionGroup = "global" | "hero" | "content" | "restaurant" | "business" | "portfolio" | "conversion";
+export type SectionGroup =
+  | "global"
+  | "hero"
+  | "content"
+  | "restaurant"
+  | "business"
+  | "portfolio"
+  | "ecommerce"
+  | "conversion";
 
 export interface SectionDefinition {
   type: SectionType;
@@ -298,6 +415,10 @@ export interface SectionDefinition {
   categories: string[] | "all";
   /** Default content factory — takes brand so names stay generic */
   defaults: (brand: BrandConfig) => SectionContentMap[SectionType];
+  /** Visual variants of this section (default: "default") */
+  variants?: SectionVariant[];
+  /** Focusable content elements for the layers tree */
+  elements?: SectionElement[];
 }
 
 export const SECTION_GROUPS: { id: SectionGroup; label: string }[] = [
@@ -307,6 +428,7 @@ export const SECTION_GROUPS: { id: SectionGroup; label: string }[] = [
   { id: "restaurant", label: "Restaurant" },
   { id: "business", label: "Business" },
   { id: "portfolio", label: "Portfolio" },
+  { id: "ecommerce", label: "E-commerce" },
   { id: "conversion", label: "Conversion" },
 ];
 

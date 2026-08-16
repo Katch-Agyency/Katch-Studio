@@ -5,7 +5,7 @@ import { cn } from "@/utils/helpers";
    UI kit — Button, Badge, Kbd, Avatar
    ============================================================ */
 
-type BtnVariant = "primary" | "secondary" | "ghost" | "danger" | "dark-brand";
+type BtnVariant = "primary" | "secondary" | "ghost" | "danger";
 type BtnSize = "sm" | "md" | "lg" | "icon" | "icon-sm";
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -18,7 +18,6 @@ const VARIANT: Record<BtnVariant, string> = {
   secondary: "btn-secondary",
   ghost: "btn-ghost",
   danger: "btn-danger",
-  "dark-brand": "btn-dark-brand",
 };
 
 const SIZE: Record<BtnSize, string> = {
@@ -51,7 +50,7 @@ export function Badge({
 }) {
   const tones: Record<string, string> = {
     neutral: "border-line-strong bg-surface-2 text-ink-muted",
-    brand: "border-brand/30 bg-brand-muted text-brand-hover",
+    brand: "border-brand-ring bg-brand-muted text-brand-hover",
     accent: "border-accent/30 bg-accent-muted text-accent",
     danger: "border-danger/30 bg-danger-muted text-danger",
     info: "border-info/30 bg-info/10 text-info",
@@ -71,6 +70,11 @@ export function Badge({
 
 export function Kbd({ children }: { children: React.ReactNode }) {
   return <kbd className="kbd">{children}</kbd>;
+}
+
+/** Skeleton loader block */
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("skeleton", className)} aria-hidden />;
 }
 
 const AVATAR_PALETTES = [

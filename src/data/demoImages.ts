@@ -13,6 +13,10 @@ import portfolioWork from "@/assets/demo/portfolio-work.jpg";
 import gallery1 from "@/assets/demo/gallery-1.jpg";
 import gallery2 from "@/assets/demo/gallery-2.jpg";
 import gallery3 from "@/assets/demo/gallery-3.jpg";
+import ecomFashion from "@/assets/demo/ecom-fashion.jpg";
+import ecomBeauty from "@/assets/demo/ecom-beauty.jpg";
+import ecomElectronics from "@/assets/demo/ecom-electronics.jpg";
+import ecomHome from "@/assets/demo/ecom-home.jpg";
 
 export const DEMO_IMAGES = {
   cakesHero,
@@ -25,4 +29,8 @@ export const DEMO_IMAGES = {
   gallery1,
   gallery2,
   gallery3,
+  ecomFashion,
+  ecomBeauty,
+  ecomElectronics,
+  ecomHome,
 } as const;

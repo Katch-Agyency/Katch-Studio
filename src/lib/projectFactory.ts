@@ -29,7 +29,7 @@ export function defaultBrand(): BrandConfig {
     logoText: "Your Brand",
     logoUrl: "",
     logoFormat: "wordmark",
-    faviconColor: "#10b981",
+    faviconColor: "#84cc16",
     email: "",
     phone: "",
     whatsapp: "",
@@ -68,7 +68,8 @@ export function themeFromPreset(presetId: string): ThemeConfig {
 function buildSections(
   types: SectionType[],
   brand: BrandConfig,
-  contentOverrides: Record<string, unknown> = {}
+  contentOverrides: Record<string, unknown> = {},
+  variants: Partial<Record<SectionType, string>> = {}
 ): SectionInstance[] {
   return types.map((type) => {
     const defaults = sectionDefaults(type, brand) as unknown as Record<string, unknown>;
@@ -77,30 +78,46 @@ function buildSections(
       id: uid(),
       type,
       hidden: false,
+      variant: variants[type],
       content: deepMerge(defaults, override),
     } as SectionInstance;
   });
 }
 
-function buildPages(tpl: WebsiteTemplate, sectionIds: string[], names: { name: string; path: string; sections: SectionType[] }[]): PageConfig[] {
-  const idx = (t: SectionType) => sectionIds[tpl.defaultSections.indexOf(t)];
-  return names.map((p) => ({
-    id: uid(),
-    name: p.name,
-    path: p.path,
-    sections: p.sections.map(idx).filter(Boolean),
-    seo: {
-      title: "",
-      description: "",
-      keywords: "",
-      ogImage: "",
-      index: true,
-    },
-  }));
+/** Maps page section types → instance ids, handling repeated section types
+ *  (a template can use the same section twice, e.g. two product grids).
+ *  The occurrence counter resets per PAGE, so Home's "products" #1 and #2
+ *  stay distinct from the Shop page's "products" #1. */
+function buildPages(tpl: WebsiteTemplate, sections: SectionInstance[], names: { name: string; path: string; sections: SectionType[] }[]): PageConfig[] {
+  return names.map((p) => {
+    const occurrence = new Map<SectionType, number>();
+    const indexOf = (t: SectionType): string | undefined => {
+      const seen = occurrence.get(t) ?? 0;
+      occurrence.set(t, seen + 1);
+      const found = sections.filter((s) => s.type === t)[seen];
+      return found?.id;
+    };
+    return {
+      id: uid(),
+      name: p.name,
+      path: p.path,
+      sections: p.sections.map(indexOf).filter((id): id is string => Boolean(id)),
+      seo: {
+        title: "",
+        description: "",
+        keywords: "",
+        ogImage: "",
+        index: true,
+      },
+    };
+  });
 }
 
 export interface CreateProjectInput {
   templateId: string;
+  /** Pass the resolved template object when it may be a user-duplicated
+   *  (custom) template — the factory falls back to the built-in registry. */
+  template?: WebsiteTemplate;
   name: string;
   client: string;
   category?: string;
@@ -110,13 +127,16 @@ export interface CreateProjectInput {
   brand?: Partial<BrandConfig>;
   /** Per-section-type content overrides (deep-merged over defaults) */
   content?: Record<string, unknown>;
+  /** Restrict the template's section set (e.g. the wizard's toggles).
+   *  Empty/undefined = keep the template's full default set. */
+  sections?: string[];
   theme?: Partial<ThemeConfig>;
   features?: string[];
   status?: Project["status"];
 }
 
 export function createProjectFromTemplate(input: CreateProjectInput): Project {
-  const tpl = getTemplate(input.templateId);
+  const tpl = input.template ?? getTemplate(input.templateId);
   if (!tpl) throw new Error(`Unknown template: ${input.templateId}`);
 
   const brand: BrandConfig = { ...defaultBrand(), ...input.brand };
@@ -129,9 +149,13 @@ export function createProjectFromTemplate(input: CreateProjectInput): Project {
     language: input.language ?? "en",
   };
 
-  const sections = buildSections(tpl.defaultSections, brand, input.content);
-  const sectionIds = sections.map((s) => s.id);
-  const pages = buildPages(tpl, sectionIds, tpl.pages);
+  const sectionTypes =
+    input.sections && input.sections.length > 0
+      ? tpl.defaultSections.filter((t) => input.sections!.includes(t))
+      : tpl.defaultSections;
+
+  const sections = buildSections(sectionTypes, brand, { ...(tpl.defaultContent ?? {}), ...input.content }, tpl.sectionVariants);
+  const pages = buildPages(tpl, sections, tpl.pages);
   const features = TEMPLATE_FEATURES.map((f) => ({
     id: f.id,
     enabled: (input.features ?? tpl.features).includes(f.id),

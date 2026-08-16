@@ -26,7 +26,16 @@ interface EditorCtx {
   update: (mutator: (draft: Project) => void) => void;
   save: () => void;
   reset: () => void;
+  /* Undo / redo history */
+  canUndo: boolean;
+  canRedo: boolean;
+  undo: () => void;
+  redo: () => void;
 }
+
+const HISTORY_LIMIT = 60;
+/** Typing bursts within this window coalesce into one history entry */
+const COALESCE_MS = 600;
 
 const Ctx = createContext<EditorCtx | null>(null);
 
@@ -55,6 +64,59 @@ export function EditorProvider({
   const latest = useRef(project);
   const cleanRef = useRef(true); // false once the user has unsaved edits
 
+  /* ---------- History (undo / redo) ---------- */
+  const pastRef = useRef<Project[]>([]);
+  const futureRef = useRef<Project[]>([]);
+  const [historyTick, setHistoryTick] = useState(0); // re-render on history change
+  const lastEditAtRef = useRef(0);
+
+  const pushHistory = useCallback((snapshot: Project) => {
+    const now = Date.now();
+    if (now - lastEditAtRef.current < COALESCE_MS && pastRef.current.length > 0) {
+      /* coalesce: keep the pre-burst entry, drop this intermediate one */
+      lastEditAtRef.current = now;
+      return;
+    }
+    lastEditAtRef.current = now;
+    pastRef.current.push(snapshot);
+    if (pastRef.current.length > HISTORY_LIMIT) pastRef.current.shift();
+    futureRef.current = [];
+    setHistoryTick((t) => t + 1);
+  }, []);
+
+  const undo = useCallback(() => {
+    const prev = pastRef.current.pop();
+    if (!prev) return;
+    futureRef.current.push(latest.current);
+    latest.current = structuredClone(prev);
+    setProject(latest.current);
+    cleanRef.current = false;
+    setSaveState("unsaved");
+    setHistoryTick((t) => t + 1);
+    /* re-arm autosave so the undone state persists */
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      updateDraft(latest.current);
+      window.setTimeout(() => setSaveState("saved"), 450);
+    }, AUTOSAVE_MS);
+  }, [updateDraft]);
+
+  const redo = useCallback(() => {
+    const next = futureRef.current.pop();
+    if (!next) return;
+    pastRef.current.push(latest.current);
+    latest.current = structuredClone(next);
+    setProject(latest.current);
+    cleanRef.current = false;
+    setSaveState("unsaved");
+    setHistoryTick((t) => t + 1);
+    if (timer.current) window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(() => {
+      updateDraft(latest.current);
+      window.setTimeout(() => setSaveState("saved"), 450);
+    }, AUTOSAVE_MS);
+  }, [updateDraft]);
+
   /* Keep `latest` in sync so flush-on-unmount saves the freshest copy */
   useEffect(() => {
     latest.current = project;
@@ -82,6 +144,7 @@ export function EditorProvider({
 
   const update = useCallback(
     (mutator: (draft: Project) => void) => {
+      pushHistory(latest.current);
       cleanRef.current = false;
       setProject((prev) => {
         const next = structuredClone(prev);
@@ -98,7 +161,7 @@ export function EditorProvider({
         window.setTimeout(() => setSaveState("saved"), 450);
       }, AUTOSAVE_MS);
     },
-    [updateDraft]
+    [updateDraft, pushHistory]
   );
 
   const save = useCallback(() => {
@@ -109,6 +172,9 @@ export function EditorProvider({
       saveProject(current);
       clearDraft(current.id);
       cleanRef.current = true;
+      pastRef.current = [];
+      futureRef.current = [];
+      setHistoryTick((t) => t + 1);
       setSaveState("saved");
       toast("success", "Project saved.");
     } catch (e) {
@@ -123,14 +189,29 @@ export function EditorProvider({
     if (base) {
       setProject(structuredClone(base));
       cleanRef.current = true;
+      pastRef.current = [];
+      futureRef.current = [];
+      setHistoryTick((t) => t + 1);
       setSaveState("saved");
       toast("info", "Reverted to the last saved version.");
     }
   }, [saved, getProject, projectId, toast]);
 
   const value = useMemo<EditorCtx>(
-    () => ({ project, persisted: Boolean(saved), saveState, update, save, reset }),
-    [project, saved, saveState, update, save, reset]
+    () => ({
+      project,
+      persisted: Boolean(saved),
+      saveState,
+      update,
+      save,
+      reset,
+      canUndo: pastRef.current.length > 0,
+      canRedo: futureRef.current.length > 0,
+      undo,
+      redo,
+    }),
+    // historyTick re-renders consumers when history changes
+    [project, saved, saveState, update, save, reset, undo, redo, historyTick]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
