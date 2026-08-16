@@ -63,31 +63,41 @@ export default function NewProject() {
   const deepTemplate = deepTemplateId ? getTemplate(deepTemplateId) : undefined;
 
   const [step, setStep] = useState(deepTemplate ? 2 : 0);
-  const [draft, setDraft] = useState<WizardDraft>(() => ({
-    name: "",
-    client: "",
-    category: deepTemplate?.category ?? "restaurant",
-    description: "",
-    audience: "",
-    language: "en",
-    templateId: deepTemplate?.id ?? null,
-    businessName: "",
-    tagline: "",
-    themePresetId: deepTemplate?.themePresetId ?? "modern",
-    phone: "",
-    whatsapp: "",
-    email: "",
-    address: "",
-    sections: deepTemplate ? [...deepTemplate.defaultSections] : [],
-    features: deepTemplate ? [...deepTemplate.features] : [],
-  }));
+  const [draft, setDraft] = useState<WizardDraft>(() => {
+    /* Preselect the featured template of the default category so the
+       highlighted category is honest and Continue is never a dead end. */
+    const defaultCategory = deepTemplate?.category ?? "restaurant";
+    const startTpl =
+      deepTemplate ??
+      TEMPLATES.filter((t) => t.category === defaultCategory).find((t) => t.featured) ??
+      TEMPLATES.find((t) => t.category === defaultCategory) ??
+      null;
+    return {
+      name: "",
+      client: "",
+      category: defaultCategory,
+      description: "",
+      audience: "",
+      language: "en",
+      templateId: startTpl?.id ?? null,
+      businessName: "",
+      tagline: "",
+      themePresetId: startTpl?.themePresetId ?? "modern",
+      phone: "",
+      whatsapp: "",
+      email: "",
+      address: "",
+      sections: startTpl ? [...startTpl.defaultSections] : [],
+      features: startTpl ? [...startTpl.features] : [],
+    };
+  });
 
   const set = <K extends keyof WizardDraft>(key: K, value: WizardDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }));
 
   /* Apply a deep-linked template if the URL changes while the wizard is open */
   useEffect(() => {
-    if (deepTemplate && draft.templateId !== deepTemplate.id) {
+    if (deepTemplate) {
       pickTemplate(deepTemplate);
       setStep(2);
     }
@@ -172,14 +182,7 @@ export default function NewProject() {
       },
       sections: draft.sections,
       features: draft.features,
-    } as never);
-    /* Filter the default section list to the wizard selection */
-    project.config.sections = project.config.sections.filter((s) => draft.sections.includes(s.type));
-    const keep = new Set(project.config.sections.map((s) => s.id));
-    project.config.pages = project.config.pages.map((p) => ({
-      ...p,
-      sections: p.sections.filter((id) => keep.has(id)),
-    }));
+    });
     toast("success", `Project “${project.config.projectInfo.name}” created.`);
     navigate(`/editor/${project.id}`);
   };
@@ -428,28 +431,31 @@ export default function NewProject() {
                       const on = draft.sections.includes(t);
                       const inTemplate = template.defaultSections.includes(t);
                       return (
-                        <button
+                        <div
                           key={t}
                           onClick={() => toggleSection(t)}
                           className={cn(
-                            "flex items-start gap-2.5 rounded-lg border p-3 text-left transition-all",
+                            "flex cursor-pointer select-none items-start gap-2.5 rounded-lg border p-3 text-left transition-all",
                             on
                               ? "border-brand/40 bg-brand-muted"
                               : "border-line bg-surface-1 hover:border-line-strong",
                             !inTemplate && !on && "opacity-40"
                           )}
-                          aria-pressed={on}
                         >
-                          <Toggle
-                            checked={on}
-                            onChange={() => toggleSection(t)}
-                            label={`Toggle ${def.name}`}
-                          />
+                          {/* stopPropagation: the toggle is the accessible control;
+                              the card itself is a convenience click target */}
+                          <span onClick={(e) => e.stopPropagation()}>
+                            <Toggle
+                              checked={on}
+                              onChange={() => toggleSection(t)}
+                              label={`Toggle ${def.name}`}
+                            />
+                          </span>
                           <span className="min-w-0 flex-1">
                             <span className="block text-[13.5px] font-medium text-ink">{def.name}</span>
                             <span className="mt-0.5 block text-[11.5px] leading-4 text-ink-faint">{def.description}</span>
                           </span>
-                        </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -466,21 +472,22 @@ export default function NewProject() {
               {TEMPLATE_FEATURES.filter((f) => f.categories === "all" || f.categories.includes(draft.category as never)).map((f) => {
                 const on = draft.features.includes(f.id);
                 return (
-                  <button
+                  <div
                     key={f.id}
                     onClick={() => toggleFeature(f.id)}
                     className={cn(
-                      "flex items-start gap-2.5 rounded-lg border p-3 text-left transition-all",
+                      "flex cursor-pointer select-none items-start gap-2.5 rounded-lg border p-3 text-left transition-all",
                       on ? "border-brand/40 bg-brand-muted" : "border-line bg-surface-1 hover:border-line-strong"
                     )}
-                    aria-pressed={on}
                   >
-                    <Toggle checked={on} onChange={() => toggleFeature(f.id)} label={`Toggle ${f.name}`} />
+                    <span onClick={(e) => e.stopPropagation()}>
+                      <Toggle checked={on} onChange={() => toggleFeature(f.id)} label={`Toggle ${f.name}`} />
+                    </span>
                     <span className="min-w-0 flex-1">
                       <span className="block text-[13.5px] font-medium text-ink">{f.name}</span>
                       <span className="mt-0.5 block text-[11.5px] leading-4 text-ink-faint">{f.description}</span>
                     </span>
-                  </button>
+                  </div>
                 );
               })}
             </div>

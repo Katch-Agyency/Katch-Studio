@@ -115,13 +115,48 @@ To restore the three demo projects at any time: **Settings → Restore demo data
   anonymous sign-in with Google/email auth and per-workspace membership checks
   (the rules file has a commented template for exactly that).
 
+## Deploying (Vercel)
+
+The repo includes `vercel.json` (SPA rewrites so `/editor/:id`, `/preview/:id` and the other
+deep links survive refresh + immutable caching for the hashed `/assets/*` files) and a build
+step that copies `dist/index.html` → `dist/404.html` as a second fallback layer.
+
+**Refresh on a deep link 404s?** The deployed build is missing the rewrite config:
+`vercel.json` must be in the **repo root that Vercel builds from** (next to `package.json`) —
+it is only read at build time, and it takes effect on the next deployment. Commit it, push,
+redeploy, then hard-refresh (Ctrl+Shift+R) once to drop the cached old bundle.
+
+1. **Set env vars in Vercel, not just locally.** Vercel bakes `VITE_*` vars into the bundle
+   **at build time** — if they're missing during deploy, the Firestore adapter is dropped from
+   the bundle and the site silently falls back to localStorage.
+   Vercel → Project → **Settings → Environment Variables** → add all four `VITE_FIREBASE_*`
+   values (scope: Production) → **Save** → **Deployments → ⋯ → Redeploy** (changing env vars
+   never rebuilds automatically).
+2. **Node version** — react-router 7 needs Node ≥ 20 (`engines` is set in package.json):
+   Vercel → Project → **Settings → General → Node.js Version → 20.x**.
+3. **Authorized domains** — anonymous sign-in works from any domain, but add your Vercel
+   domains now so Google sign-in works later: Firebase Console → **Authentication → Settings →
+   Authorized domains** → add `katch-studio.vercel.app` (and `*.vercel.app` if you want preview
+   builds to auth) and your custom domain.
+4. **Verification checklist**:
+   - Deployed site → Settings → **Storage & Sync** shows `Firestore · katch-prod` with a green dot
+   - Firestore Console → Data shows the workspace docs — the deployed app shares the same
+     workspace as your local dev, so your projects are already there
+   - Refresh directly on a deep link (e.g. `/editor/<projectId>`) — no 404 means the rewrites are active
+   - Open the site in a second browser — same projects appear (that's the sync working)
+5. **Preview deployments** (every git push) use the same env vars by default, so previews touch
+   the same Firestore workspace. To keep experiments out of production data, set a separate
+   `VITE_FIREBASE_WORKSPACE_ID` (e.g. `katch-preview`) scoped to the **Preview** environment.
+
 ## Troubleshooting
 
 | Symptom | Fix |
 | --- | --- |
 | "Could not reach Firestore — switched to local storage" | Check `.env` values + `npm run dev` restart + browser console for details |
 | "Couldn't sync with storage" toast while on Firestore | Usually `permission-denied` → deploy `firestore.rules` AND enable Anonymous sign-in |
-| Settings still shows "Local browser storage" | `.env` is missing/typo'd, or the dev server wasn't restarted |
+| Settings still shows "Local browser storage" | `.env` is missing/typo'd, or the dev server wasn't restarted — **on Vercel: the `VITE_FIREBASE_*` vars were missing at BUILD time → add them in Vercel Settings → Environment Variables, then Redeploy** |
+| Deployed site works but Firestore stays empty | (1) Visit the deployed URL first — the app only writes when opened. (2) Check DevTools console for `requests from referer … are blocked` → the API key is referrer-restricted: Google Cloud Console → Credentials → Browser key → add your `*.vercel.app` domain. (3) `permission-denied` → republish `firestore.rules` + verify Anonymous sign-in is enabled |
+| One device shows "Firestore · katch-prod" but another shows "Local browser storage" | The connection is baked into the **build**, not the device — the other device is running a different build. Share only the production domain URL (Vercel → Settings → Domains); old preview links are separate deployments with their own env scope. Hard-refresh (Ctrl+Shift+R) once to drop a cached old bundle. Deployed builds in local mode now show a warning banner at the top of every page |
 | Doc-size error mentioning a project name | That project's config passed 1 MiB → swap big uploaded images for URLs |
 | Changes appear locally but not in the console | Open DevTools → Console for the sync error, then check the table above |
 

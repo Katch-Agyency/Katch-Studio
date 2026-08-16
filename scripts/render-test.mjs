@@ -97,6 +97,53 @@ await waitFor(() => text().includes("Set up the brand"));
 ok(text().includes("Set up the brand"), "template deep-link opens step 3");
 ok(text().includes("Elegant Restaurant"), "template preselected");
 
+console.log("\n3b) Full wizard click-through → project created");
+nav("/projects"); // leave the wizard route so it remounts fresh
+await waitFor(() => text().includes("All statuses"));
+nav("/projects/new");
+/* Same route component survives search-param changes, so wait for the
+   step-1 input element itself — text alone can be stale. */
+await waitFor(() => Boolean(document.querySelector("#np-name")));
+const nameInput = document.querySelector("#np-name");
+const valueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+valueSetter.call(nameInput, "Wizard Test Café");
+nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+await new Promise((r) => setTimeout(r, 200));
+const clickButton = async (label) => {
+  const btn = [...document.querySelectorAll("button")].find((b) => b.textContent.includes(label));
+  if (btn) btn.click();
+  await new Promise((r) => setTimeout(r, 600));
+};
+await clickButton("Continue"); // → step 2 (template)
+await waitFor(() => text().includes("Choose a starting template"));
+ok(text().includes("Choose a starting template"), "step 2 reached");
+/* Exercise template-card selection, then continue */
+const tplCard = [...document.querySelectorAll("button")].find((b) =>
+  b.textContent.includes("Elegant Restaurant")
+);
+ok(Boolean(tplCard), "template card found");
+tplCard?.click();
+await new Promise((r) => setTimeout(r, 400));
+await clickButton("Continue"); // → step 3 (brand & theme)
+await waitFor(() => text().includes("Set up the brand"));
+await clickButton("Continue"); // → step 4 (sections & features)
+await waitFor(() => text().includes("Choose the building blocks"));
+ok(text().includes("Choose the building blocks"), "step 4 reached");
+await clickButton("Create Project");
+await waitFor(() => text().includes("Wizard Test Café") && text().includes("Saved"), 10000);
+const stored = JSON.parse(localStorage.getItem("katch-studio:projects:v1") ?? "[]");
+const created = stored.find((p) => p.config.projectInfo.name === "Wizard Test Café");
+ok(Boolean(created), "project created and persisted");
+if (created) {
+  ok(created.config.sections.length > 5, `created project has sections (${created.config.sections.length})`);
+  ok(created.config.pages.length > 1, `created project has pages (${created.config.pages.length})`);
+  ok(created.config.pages.every((pg) => pg.sections.length > 0), "every created page has sections");
+  /* No orphan/unreferenced sections */
+  const ids = new Set(created.config.sections.map((s) => s.id));
+  const orphan = created.config.pages.flatMap((pg) => pg.sections).filter((id) => !ids.has(id));
+  ok(orphan.length === 0, "no orphan section references after wizard filtering");
+}
+
 console.log("\n4) Editor + live preview (Looky Cakes)");
 const saved = JSON.parse(localStorage.getItem("katch-studio:projects:v1") ?? "[]");
 const lookyId = saved.find((p) => p.config.projectInfo.name === "Looky Cakes")?.id;
@@ -169,7 +216,25 @@ await waitFor(() => {
 const drafts = JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}");
 ok(Boolean(drafts[lookyId]), "autosave draft persisted to localStorage");
 
-console.log("\n10) Runtime errors during the whole session");
+console.log("\n10) Deployed build without Firebase → local-mode banner");
+{
+  /* Fresh DOM on a REMOTE host: a deployed build in local mode must scream about it */
+  const dom2 = new JSDOM('<!doctype html><html class="dark"><body><div id="root"></div></body></html>', {
+    url: "https://katch-studio.vercel.app/",
+    pretendToBeVisual: true,
+  });
+  globalThis.window = dom2.window;
+  globalThis.document = dom2.window.document;
+  globalThis.navigator = dom2.window.navigator;
+  globalThis.localStorage = dom2.window.localStorage;
+  globalThis.HTMLElement = dom2.window.HTMLElement;
+  await import(pathToFileURL("/tmp/katch-render-entry.mjs").href + "?banner=" + Date.now());
+  await waitFor(() => document.body.textContent.includes("Local mode"));
+  ok(document.body.textContent.includes("Local mode"), "banner visible on remote host in local mode");
+  ok(Boolean(document.querySelector("[role='note']")), "banner marked as a note region");
+}
+
+console.log("\n11) Runtime errors during the whole session");
 ok(windowErrors.length === 0, windowErrors.length === 0 ? "no window errors" : `${windowErrors.length} errors`);
 windowErrors.slice(0, 5).forEach((e) => console.log("  ·", e.split("\n")[0].slice(0, 160)));
 

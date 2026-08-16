@@ -4,9 +4,12 @@
   "version": "1.0.0",
   "description": "Katch Studio — internal website production system for the Katch web agency",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node scripts/copy-404.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test:data": "esbuild src/scripts/smoke.ts --bundle --platform=node --format=esm --alias:@=./src --loader:.jpg=dataurl --outfile=/tmp/katch-smoke.mjs && node /tmp/katch-smoke.mjs",

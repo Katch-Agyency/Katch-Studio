@@ -110,6 +110,9 @@ export interface CreateProjectInput {
   brand?: Partial<BrandConfig>;
   /** Per-section-type content overrides (deep-merged over defaults) */
   content?: Record<string, unknown>;
+  /** Restrict the template's section set (e.g. the wizard's toggles).
+   *  Empty/undefined = keep the template's full default set. */
+  sections?: string[];
   theme?: Partial<ThemeConfig>;
   features?: string[];
   status?: Project["status"];
@@ -129,7 +132,12 @@ export function createProjectFromTemplate(input: CreateProjectInput): Project {
     language: input.language ?? "en",
   };
 
-  const sections = buildSections(tpl.defaultSections, brand, input.content);
+  const sectionTypes =
+    input.sections && input.sections.length > 0
+      ? tpl.defaultSections.filter((t) => input.sections!.includes(t))
+      : tpl.defaultSections;
+
+  const sections = buildSections(sectionTypes, brand, input.content);
   const sectionIds = sections.map((s) => s.id);
   const pages = buildPages(tpl, sectionIds, tpl.pages);
   const features = TEMPLATE_FEATURES.map((f) => ({

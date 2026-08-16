@@ -51,7 +51,14 @@ export async function createFirestoreAdapter(config: FirestoreSetupConfig): Prom
     await auth.authStateReady();
     if (!auth.currentUser) await signInAnonymously(auth);
   } catch (err) {
-    console.warn("[Katch Studio] Anonymous sign-in skipped — enable it in Firebase Auth if rules require it.", err);
+    const code = (err as { code?: string }).code ?? "unknown";
+    console.warn(
+      `[Katch Studio] Anonymous sign-in failed (auth/${code}). ` +
+        `Firestore rules require request.auth != null, so sync will be denied until you fix this:\n` +
+        `  1. Firebase Console → Authentication → Sign-in method → Anonymous → Enabled\n` +
+        `  2. Firebase Console → Authentication → Settings → Authorized domains → add this site's domain\n`,
+      err
+    );
   }
 
   const db = getFirestore(app);
@@ -107,6 +114,54 @@ export async function createFirestoreAdapter(config: FirestoreSetupConfig): Prom
     return p && p.config && p.id ? p : null;
   };
 
+  /* ---------- Read path + permission diagnostics ---------- */
+
+  const loadSnapshot = async (): Promise<StorageSnapshot> => {
+    const [projectsSnap, draftsSnap, metaSnap] = await Promise.all([
+      getDocs(projectsRef),
+      getDocs(draftsRef),
+      getDoc(metaDoc),
+    ]);
+
+    const projects = projectsSnap.docs
+      .map((d) => asProject(d.data()))
+      .filter((p): p is Project => Boolean(p))
+      .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
+
+    const drafts: Record<string, Project> = {};
+    draftsSnap.docs.forEach((d) => {
+      const p = asProject(d.data());
+      if (p) drafts[d.id] = p;
+    });
+
+    const meta = metaSnap.exists() ? metaSnap.data() : {};
+    return {
+      projects,
+      drafts,
+      lastOpenedProjectId: (meta.lastOpenedProjectId as string) ?? null,
+      seeded: Boolean(meta.seeded),
+    };
+  };
+
+  const isPermissionDenied = (err: unknown): boolean => {
+    const code = (err as { code?: string }).code ?? "";
+    const message = err instanceof Error ? err.message : String(err);
+    return code === "permission-denied" || message.includes("Missing or insufficient permissions");
+  };
+
+  const logPermissionGuidance = (err: unknown): void => {
+    console.error(
+      "[Katch Studio] Firestore denied the request (permission-denied). Most likely causes:\n" +
+        "  1. Rules not published (or an old version) → Firebase Console → Firestore → Rules →\n" +
+        "     paste the full contents of firestore.rules (the {document=**} recursive wildcard\n" +
+        "     version) → Publish\n" +
+        "  2. Anonymous sign-in disabled → Authentication → Sign-in method → Anonymous → Enabled\n" +
+        "  3. Domain not authorized → Authentication → Settings → Authorized domains → add\n" +
+        "     your Vercel domain (e.g. katch-studio.vercel.app)\n",
+      err
+    );
+  };
+
   /* ---------- Adapter ---------- */
 
   return {
@@ -114,30 +169,12 @@ export async function createFirestoreAdapter(config: FirestoreSetupConfig): Prom
     label: `Firestore · ${ws}`,
 
     async load(): Promise<StorageSnapshot> {
-      const [projectsSnap, draftsSnap, metaSnap] = await Promise.all([
-        getDocs(projectsRef),
-        getDocs(draftsRef),
-        getDoc(metaDoc),
-      ]);
-
-      const projects = projectsSnap.docs
-        .map((d) => asProject(d.data()))
-        .filter((p): p is Project => Boolean(p))
-        .sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
-
-      const drafts: Record<string, Project> = {};
-      draftsSnap.docs.forEach((d) => {
-        const p = asProject(d.data());
-        if (p) drafts[d.id] = p;
-      });
-
-      const meta = metaSnap.exists() ? metaSnap.data() : {};
-      return {
-        projects,
-        drafts,
-        lastOpenedProjectId: (meta.lastOpenedProjectId as string) ?? null,
-        seeded: Boolean(meta.seeded),
-      };
+      try {
+        return await loadSnapshot();
+      } catch (err) {
+        if (isPermissionDenied(err)) logPermissionGuidance(err);
+        throw err;
+      }
     },
 
     async saveProjects(projects) {

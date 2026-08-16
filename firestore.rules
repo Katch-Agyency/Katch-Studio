@@ -10,6 +10,10 @@ service cloud.firestore {
     //   workspaces/{workspaceId}/drafts/{projectId}    — unsaved editor drafts
     //   workspaces/{workspaceId}/meta/state            — last-opened + seeded flags
     //
+    // The recursive {document=**} wildcard makes this rule cover the
+    // workspace document AND every nested collection/document below it,
+    // regardless of depth — no ambiguity about subcollection coverage.
+    //
     // MVP (single internal team): any signed-in user may read/write.
     // The studio signs in anonymously on boot, so enable
     // Authentication → Sign-in method → Anonymous for these rules to work.
@@ -21,14 +25,14 @@ service cloud.firestore {
     //         workspaces/$(workspaceId)/members/$(request.auth.uid));
     // ============================================================
 
-    match /workspaces/{workspaceId} {
-      // This single rule covers the workspace doc and every nested
-      // collection (projects, drafts, meta) recursively.
+    match /workspaces/{workspaceId}/{document=**} {
       allow read, write: if request.auth != null;
-
-      // ---- Variant: open access — ONLY for a quick local trial.
-      // Do NOT deploy this to anything real:
-      // allow read, write: if true;
     }
+
+    // ---- Variant: open access — ONLY for a quick local trial.
+    // Do NOT deploy this to anything real:
+    // match /workspaces/{workspaceId}/{document=**} {
+    //   allow read, write: if true;
+    // }
   }
 }

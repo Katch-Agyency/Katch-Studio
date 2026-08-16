@@ -25,6 +25,16 @@ export function WebsitePage({
     .map((id) => project.sections.find((s) => s.id === id))
     .filter((s): s is NonNullable<typeof s> => Boolean(s && !s.hidden));
 
+  if (sections.length === 0) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center p-10 text-center">
+        <p className="max-w-sm text-sm leading-relaxed" style={{ color: "var(--wp-text-muted)" }}>
+          This page has no sections yet — add some from the <strong>Sections</strong> tab in the editor.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-full">
       {sections.map((section) => (

@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { Logo, LogoMark } from "./Logo";
+import CloudStatusBanner from "./CloudStatusBanner";
 import { useStudioTheme } from "@/app/theme";
 import { Avatar, Kbd } from "@/components/ui/ui";
 import { cn } from "@/utils/helpers";
@@ -142,6 +143,9 @@ export default function AppLayout() {
             <Avatar name="Katch Studio" size={30} />
           </div>
         </header>
+
+        {/* Deployed-but-not-connected warning (invisible on localhost / when Firestore is active) */}
+        <CloudStatusBanner />
 
         <main className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />
