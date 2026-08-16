@@ -275,8 +275,8 @@ function EditorInner({ projectId }: { projectId: string }) {
             )}
             aria-label="Editor panels"
           >
-            {/* Tabs */}
-            <nav className="flex shrink-0 gap-1 overflow-x-auto border-b border-line px-3 py-2 no-scrollbar" aria-label="Editor tabs">
+            {/* Tabs — wrap so every tab is ALWAYS visible (no hidden scroll) */}
+            <nav className="flex shrink-0 flex-wrap gap-1 border-b border-line px-3 py-2" aria-label="Editor tabs">
               {TABS.map((t) => (
                 <button
                   key={t.id}
@@ -304,8 +304,8 @@ function EditorInner({ projectId }: { projectId: string }) {
 
           {/* Preview */}
           <div className={cn("min-w-0 flex-1 flex-col lg:flex", mobileView === "preview" ? "flex" : "hidden")}>
-            {/* Page tabs */}
-            <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-line bg-surface-1/40 px-3 py-2 no-scrollbar">
+            {/* Page tabs — wrap so all pages stay visible */}
+            <div className="flex shrink-0 flex-wrap items-center gap-1 border-b border-line bg-surface-1/40 px-3 py-2">
               {project.config.pages.map((p) => (
                 <button
                   key={p.id}
@@ -375,7 +375,7 @@ function SaveButton({
       <Button variant="primary" size="md" onClick={onSave}>
         <Save className="h-4 w-4" />
         <span className="hidden sm:inline">Save</span>
-        <span className="h-1.5 w-1.5 rounded-full bg-amber-400" aria-label="Unsaved changes" />
+        <span className="h-1.5 w-1.5 rounded-full bg-katch" aria-label="Unsaved changes" />
       </Button>
     );
   }

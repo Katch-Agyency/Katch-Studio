@@ -170,7 +170,7 @@ export default function ContentPanel() {
             <p className="label">Alignment</p>
             <div className="seg">
               {(["left", "center"] as const).map((a) => (
-                <button key={a} className={c.alignment === a ? "seg-item-active" : "seg-item"} onClick={() => setContent({ alignment: a })}>
+                <button key={a} className={(c.alignment ?? "left") === a ? "seg-item-active" : "seg-item"} onClick={() => setContent({ alignment: a })}>
                   {a === "left" ? "Left / split" : "Centered"}
                 </button>
               ))}

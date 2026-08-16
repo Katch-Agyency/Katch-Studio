@@ -163,6 +163,20 @@ nav(`/editor/${lookyId}`);
 await waitFor(() => text().includes("Signature Cakes"));
 ok(text().includes("Saved"), "save state indicator");
 ok(text().includes("Pages") && text().includes("Sections") && text().includes("Brand"), "editor tabs");
+/* ALL six editor tabs must be visible — the tab strip wraps instead of clipping */
+const tabNav = document.querySelector("nav[aria-label='Editor tabs']");
+ok(Boolean(tabNav), "editor tab strip exists");
+if (tabNav) {
+  const labels = [...tabNav.querySelectorAll("button")].map((b) => b.textContent.trim());
+  const expected = ["Pages", "Sections", "Content", "Brand", "Features", "SEO"];
+  ok(expected.every((l) => labels.some((x) => x === l)), `all 6 tabs present (${labels.join(", ")})`);
+  ok(!tabNav.className.includes("overflow-x-auto"), "tab strip wraps — nothing can be clipped");
+}
+/* All project pages visible in the page-tab row */
+const pageTabs = [...document.querySelectorAll("div.flex-wrap button")].filter((b) =>
+  b.textContent.trim() === "Home" || b.textContent.trim() === "Menu"
+);
+ok(pageTabs.length >= 2, "page tabs visible (Home, Menu…)");
 ok(text().includes("Signature Cakes"), "preview renders menu content");
 ok(text().includes("Order on WhatsApp"), "preview renders CTA content");
 ok(text().includes("Chocolate Ganache"), "preview renders menu items");

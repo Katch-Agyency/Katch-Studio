@@ -29,7 +29,7 @@ export function defaultBrand(): BrandConfig {
     logoText: "Your Brand",
     logoUrl: "",
     logoFormat: "wordmark",
-    faviconColor: "#10b981",
+    faviconColor: "#84cc16",
     email: "",
     phone: "",
     whatsapp: "",
