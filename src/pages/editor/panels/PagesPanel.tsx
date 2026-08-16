@@ -100,7 +100,7 @@ export default function PagesPanel() {
             key={page.id}
             className={cn(
               "group rounded-lg border transition-colors",
-              isActive ? "border-brand/40 bg-brand-muted/60" : "border-line bg-surface-1 hover:border-line-strong"
+              isActive ? "border-brand-ring bg-brand-muted" : "border-line bg-surface-1 hover:border-line-strong"
             )}
           >
             <div className="flex items-center gap-2 px-3 py-2.5">
@@ -180,7 +180,7 @@ export default function PagesPanel() {
       })}
 
       {adding ? (
-        <div className="rounded-lg border border-brand/40 bg-surface-1 p-2.5">
+        <div className="rounded-lg border border-brand-ring bg-surface-1 p-2.5">
           <div className="flex items-center gap-1.5">
             <TextInput
               className="h-8 flex-1 text-[13px]"

@@ -18,6 +18,7 @@ import { useStore } from "@/app/store";
 import { useToast } from "@/app/toast";
 import { Button, Badge } from "@/components/ui/ui";
 import { Field, TextInput, TextArea, Select, Toggle } from "@/components/ui/Fields";
+import { Modal } from "@/components/ui/Modal";
 import { WEBSITE_CATEGORIES, TEMPLATE_FEATURES, getCategory } from "@/data/features";
 import { TEMPLATES, getTemplate } from "@/data/templates";
 import { THEME_PRESETS, getThemePreset } from "@/data/palette";
@@ -63,6 +64,7 @@ export default function NewProject() {
   const deepTemplate = deepTemplateId ? getTemplate(deepTemplateId) : undefined;
 
   const [step, setStep] = useState(deepTemplate ? 2 : 0);
+  const [previewTpl, setPreviewTpl] = useState<WebsiteTemplate | null>(null);
   const [draft, setDraft] = useState<WizardDraft>(() => {
     /* Preselect the featured template of the default category so the
        highlighted category is honest and Continue is never a dead end. */
@@ -204,9 +206,9 @@ export default function NewProject() {
                   className={cn(
                     "flex h-7 w-7 items-center justify-center rounded-full border text-xs font-semibold transition-colors",
                     i < step
-                      ? "cursor-pointer border-transparent bg-brand text-white"
+                      ? "cursor-pointer border-transparent bg-brand-muted text-brand-hover"
                       : i === step
-                        ? "border-brand bg-brand-muted text-brand-hover"
+                        ? "border-transparent bg-katch text-katch-ink"
                         : "cursor-default border-line-strong text-ink-faint"
                   )}
                   aria-current={i === step ? "step" : undefined}
@@ -217,7 +219,12 @@ export default function NewProject() {
                   {label}
                 </span>
               </li>
-              {i < STEPS.length - 1 && <li className="h-px w-6 bg-line-strong sm:w-10" aria-hidden />}
+              {i < STEPS.length - 1 && (
+                <li
+                  className={cn("h-px w-6 sm:w-10", i < step ? "bg-brand-ring" : "bg-line-strong")}
+                  aria-hidden
+                />
+              )}
             </React.Fragment>
           ))}
         </ol>
@@ -294,33 +301,37 @@ export default function NewProject() {
 
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {templates.map((tpl) => (
-              <button
+              <div
                 key={tpl.id}
-                onClick={() => pickTemplate(tpl)}
                 className={cn(
                   "card card-hover group overflow-hidden text-left transition-all",
-                  draft.templateId === tpl.id && "border-brand ring-2 ring-brand-ring"
+                  draft.templateId === tpl.id && "border-brand-ring ring-2 ring-brand-ring"
                 )}
-                aria-pressed={draft.templateId === tpl.id}
               >
-                <div className="relative aspect-[16/8] overflow-hidden bg-surface-2">
+                {/* Preview button — opens the full preview dialog */}
+                <button
+                  type="button"
+                  onClick={() => setPreviewTpl(tpl)}
+                  className="relative block aspect-[16/8] w-full overflow-hidden bg-surface-2 text-left"
+                  aria-label={`Preview ${tpl.name}`}
+                >
                   <img
                     src={tpl.previewImage}
-                    alt={`${tpl.name} preview`}
+                    alt=""
                     className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                     loading="lazy"
                   />
-                  {tpl.featured && (
-                    <span className="absolute left-3 top-3 rounded-md bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur">
-                      Featured
-                    </span>
-                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                  <span className="absolute left-3 top-3 rounded-md bg-black/60 px-2 py-1 text-[11px] font-medium text-white backdrop-blur">
+                    {tpl.featured ? "Featured" : "Preview"}
+                  </span>
                   {draft.templateId === tpl.id && (
-                    <span className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-brand text-white">
+                    <span className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-katch text-katch-ink">
                       <Check className="h-3.5 w-3.5" />
                     </span>
                   )}
-                </div>
+                </button>
+
                 <div className="p-4">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-[15px] font-semibold text-ink">{tpl.name}</h3>
@@ -334,8 +345,22 @@ export default function NewProject() {
                     <span aria-hidden>·</span>
                     <span>{tpl.features.length} features</span>
                   </div>
+                  <Button
+                    variant={draft.templateId === tpl.id ? "secondary" : "primary"}
+                    size="md"
+                    className="mt-4 w-full"
+                    onClick={() => pickTemplate(tpl)}
+                  >
+                    {draft.templateId === tpl.id ? (
+                      <>
+                        <Check className="h-4 w-4" /> Selected
+                      </>
+                    ) : (
+                      "Use Template"
+                    )}
+                  </Button>
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </div>
@@ -437,7 +462,7 @@ export default function NewProject() {
                           className={cn(
                             "flex cursor-pointer select-none items-start gap-2.5 rounded-lg border p-3 text-left transition-all",
                             on
-                              ? "border-brand/40 bg-brand-muted"
+                              ? "border-brand-ring bg-brand-muted"
                               : "border-line bg-surface-1 hover:border-line-strong",
                             !inTemplate && !on && "opacity-40"
                           )}
@@ -477,7 +502,7 @@ export default function NewProject() {
                     onClick={() => toggleFeature(f.id)}
                     className={cn(
                       "flex cursor-pointer select-none items-start gap-2.5 rounded-lg border p-3 text-left transition-all",
-                      on ? "border-brand/40 bg-brand-muted" : "border-line bg-surface-1 hover:border-line-strong"
+                      on ? "border-brand-ring bg-brand-muted" : "border-line bg-surface-1 hover:border-line-strong"
                     )}
                   >
                     <span onClick={(e) => e.stopPropagation()}>
@@ -506,6 +531,72 @@ export default function NewProject() {
           </div>
         </div>
       )}
+
+      {/* Template preview dialog */}
+      <Modal
+        open={Boolean(previewTpl)}
+        onClose={() => setPreviewTpl(null)}
+        title={previewTpl?.name ?? ""}
+        description={previewTpl ? `${getCategory(previewTpl.category)?.label} · ${previewTpl.style}` : undefined}
+        size="lg"
+        footer={
+          previewTpl ? (
+            <>
+              <Button variant="ghost" onClick={() => setPreviewTpl(null)}>
+                Close
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  pickTemplate(previewTpl);
+                  setPreviewTpl(null);
+                }}
+              >
+                Use Template
+              </Button>
+            </>
+          ) : undefined
+        }
+      >
+        {previewTpl && (
+          <div className="space-y-4">
+            <div className="overflow-hidden rounded-xl border border-line bg-surface-2">
+              <img src={previewTpl.previewImage} alt="" className="aspect-[16/8] w-full object-cover" />
+            </div>
+            <p className="text-sm leading-relaxed text-ink-muted">{previewTpl.description}</p>
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">Sections</p>
+              <div className="flex flex-wrap gap-1.5">
+                {previewTpl.defaultSections.map((s) => (
+                  <span key={s} className="rounded-md border border-line-strong bg-surface-2 px-2 py-1 text-[11.5px] text-ink-muted">
+                    {SECTION_DEFINITIONS[s].name}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">Pages</p>
+                <ul className="space-y-1 text-[13px] text-ink-muted">
+                  {previewTpl.pages.map((p) => (
+                    <li key={p.name}>{p.name}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-faint">Features</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {previewTpl.features.map((fid) => (
+                    <span key={fid} className="rounded-md border border-line-strong bg-surface-2 px-2 py-1 text-[11.5px] text-ink-muted">
+                      {TEMPLATE_FEATURES.find((f) => f.id === fid)?.name ?? fid}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Footer nav */}
       <div className="mt-8 flex items-center justify-between border-t border-line pt-5">

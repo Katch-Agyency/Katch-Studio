@@ -12,6 +12,24 @@ Dashboard → + New Project → Website type → Template → Brand & theme
 → Sections & features → Edit content → Live preview → Save → Export
 ```
 
+## Design
+
+Dark-first premium interface with a **single controlled accent: `#D7FF4F`** (the official Katch accent).
+
+- **Tokens** live centrally in `src/index.css` (`--ks-*` CSS variables) with RGB channel
+  companions (`--ks-*-rgb`) that feed Tailwind's `<alpha-value>` slot — so `/opacity`
+  modifiers work everywhere. Light mode swaps values only.
+- The accent is used deliberately: primary CTAs, active nav states, toggles, selection,
+  focus rings — never as decoration.
+- The **official Katch Studio logo** (uploaded asset) is shown as-is on a white tile
+  (`src/assets/brand/`, favicon in `public/`), never redrawn or recolored.
+- The **Design System page** documents tokens, typography, buttons, cards, inputs,
+  badges, alerts and navigation.
+- **Command palette**: press `⌘K` / `Ctrl+K` anywhere to navigate, open or duplicate
+  projects, create a project, toggle theme, or save the current project (`⌘S`/`Ctrl+S`
+  works in the editor too).
+- Loading skeletons, useful empty states, and actionable error messages on every page.
+
 ## Stack
 
 | Layer      | Choice                                        |

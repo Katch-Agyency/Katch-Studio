@@ -16,7 +16,7 @@ await build({
   format: "esm",
   outfile: "/tmp/katch-render-entry.mjs",
   alias: { "@": path.join(root, "src") },
-  loader: { ".jpg": "dataurl" },
+  loader: { ".jpg": "dataurl", ".png": "dataurl" },
   /* Firebase is lazily imported only when VITE_FIREBASE_* is configured —
      keep it out of the test bundle (and it is never exercised in tests). */
   external: ["firebase", "firebase/*"],
@@ -117,12 +117,24 @@ const clickButton = async (label) => {
 await clickButton("Continue"); // → step 2 (template)
 await waitFor(() => text().includes("Choose a starting template"));
 ok(text().includes("Choose a starting template"), "step 2 reached");
-/* Exercise template-card selection, then continue */
-const tplCard = [...document.querySelectorAll("button")].find((b) =>
-  b.textContent.includes("Elegant Restaurant")
+/* Exercise the template preview dialog + real Use Template CTA */
+await waitFor(() => [...document.querySelectorAll("button")].some((b) => b.textContent.trim() === "Use Template"));
+const useBtn = [...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Use Template");
+const previewBtn = [...document.querySelectorAll("button")].find((b) =>
+  (b.getAttribute("aria-label") ?? "").startsWith("Preview ")
 );
-ok(Boolean(tplCard), "template card found");
-tplCard?.click();
+ok(Boolean(previewBtn), "template preview button found");
+previewBtn?.click();
+await waitFor(() => Boolean(document.querySelector("[role='dialog']")));
+const dlg = document.querySelector("[role='dialog']");
+ok(
+  dlg && dlg.textContent.includes("Elegant Restaurant") && dlg.textContent.includes("Features"),
+  "template preview dialog shows details"
+);
+const closeDialog = [...document.querySelectorAll("button")].find((b) => b.getAttribute("aria-label") === "Close dialog");
+closeDialog?.click();
+await new Promise((r) => setTimeout(r, 300));
+useBtn?.click();
 await new Promise((r) => setTimeout(r, 400));
 await clickButton("Continue"); // → step 3 (brand & theme)
 await waitFor(() => text().includes("Set up the brand"));
@@ -215,6 +227,16 @@ await waitFor(() => {
 });
 const drafts = JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}");
 ok(Boolean(drafts[lookyId]), "autosave draft persisted to localStorage");
+
+console.log("\n9b) Command palette (Ctrl+K)");
+dom.window.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true }));
+await waitFor(() => Boolean(document.querySelector("input[placeholder='Search Katch Studio…']")));
+ok(Boolean(document.querySelector("input[placeholder='Search Katch Studio…']")), "palette opens with Ctrl+K");
+ok(text().includes("Create a new project"), "palette lists actions");
+ok(text().includes("Duplicate “"), "palette lists project commands");
+dom.window.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+await waitFor(() => !document.querySelector("input[placeholder='Search Katch Studio…']"));
+ok(!document.querySelector("input[placeholder='Search Katch Studio…']"), "palette closes with Escape");
 
 console.log("\n10) Deployed build without Firebase → local-mode banner");
 {

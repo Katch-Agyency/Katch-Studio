@@ -1,13 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Copy,
-  FolderKanban,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-} from "lucide-react";
+import { ArrowUpDown, Copy, FolderKanban, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useStore } from "@/app/store";
 import { useToast } from "@/app/toast";
 import { Button } from "@/components/ui/ui";
@@ -20,17 +13,20 @@ import { getTemplate } from "@/data/templates";
 import { timeLabel } from "@/utils/helpers";
 
 /* ============================================================
-   Projects — the production queue: search, filter, duplicate,
-   delete, open.
+   Projects — the production queue: search, filter, sort,
+   duplicate, delete, open.
    ============================================================ */
 
+type SortKey = "updated" | "name" | "status";
+
 export default function Projects() {
-  const { projects, duplicateProject, deleteProject } = useStore();
+  const { projects, duplicateProject, deleteProject, hydrated } = useStore();
   const { toast } = useToast();
 
   const [query, setQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("updated");
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -47,8 +43,14 @@ export default function Projects() {
           p.config.brand.businessName.toLowerCase().includes(q)
         );
       })
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  }, [projects, query, typeFilter, statusFilter]);
+      .sort((a, b) => {
+        if (sortKey === "name")
+          return (a.config.projectInfo.name || "").localeCompare(b.config.projectInfo.name || "");
+        if (sortKey === "status")
+          return PROJECT_STATUSES.indexOf(a.status) - PROJECT_STATUSES.indexOf(b.status);
+        return b.updatedAt.localeCompare(a.updatedAt);
+      });
+  }, [projects, query, typeFilter, statusFilter, sortKey]);
 
   const onDuplicate = (id: string) => {
     const copy = duplicateProject(id);
@@ -87,7 +89,7 @@ export default function Projects() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <select
-            className="input w-auto min-w-[150px]"
+            className="input w-auto min-w-[140px]"
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
             aria-label="Filter by website type"
@@ -112,14 +114,44 @@ export default function Projects() {
               </option>
             ))}
           </select>
+          <div className="relative">
+            <ArrowUpDown className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" aria-hidden />
+            <select
+              className="input w-auto min-w-[160px] pl-8"
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as SortKey)}
+              aria-label="Sort projects"
+            >
+              <option value="updated">Last updated</option>
+              <option value="name">Name</option>
+              <option value="status">Status</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Table */}
       <div className="card mt-4 overflow-hidden">
-        {filtered.length === 0 ? (
+        {!hydrated ? (
+          <div className="divide-y divide-line">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-4 px-4 py-3.5">
+                <div className="skeleton h-8 w-8 rounded-lg" />
+                <div className="flex-1">
+                  <div className="skeleton h-3.5 w-44" />
+                  <div className="skeleton mt-2 h-2.5 w-28" />
+                </div>
+                <div className="skeleton h-4 w-16" />
+                <div className="skeleton h-5 w-24 rounded-full" />
+                <div className="skeleton h-3 w-14" />
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center px-6 py-14 text-center">
-            <FolderKanban className="mb-3 h-8 w-8 text-ink-faint" aria-hidden />
+            <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-brand-ring bg-brand-muted text-brand-hover">
+              <FolderKanban className="h-5 w-5" aria-hidden />
+            </span>
             <h3 className="text-[15px] font-semibold text-ink">
               {projects.length === 0 ? "No projects yet." : "No projects match your filters."}
             </h3>
@@ -161,14 +193,20 @@ export default function Projects() {
                           to={`/editor/${p.id}`}
                           className="flex items-center gap-2.5 font-medium text-ink transition-colors hover:text-brand-hover"
                         >
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-surface-2 text-xs font-bold text-ink-muted">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-surface-2 text-[11px] font-bold text-ink-muted">
                             {(p.config.projectInfo.name || "?").slice(0, 2).toUpperCase()}
                           </span>
-                          {p.config.projectInfo.name || "Untitled Project"}
+                          <span className="min-w-0 truncate">
+                            {p.config.projectInfo.name || "Untitled Project"}
+                          </span>
                         </Link>
                       </td>
                       <td className="td text-ink-muted">{p.config.projectInfo.client || "—"}</td>
-                      <td className="td text-ink-muted">{cat?.label ?? "—"}</td>
+                      <td className="td">
+                        <span className="inline-flex items-center rounded-md border border-line-strong bg-surface-2 px-2 py-0.5 text-[11.5px] font-medium text-ink-muted">
+                          {cat?.label ?? "—"}
+                        </span>
+                      </td>
                       <td className="td text-ink-muted">{tpl?.name ?? "Custom"}</td>
                       <td className="td">
                         <StatusBadge status={p.status} />

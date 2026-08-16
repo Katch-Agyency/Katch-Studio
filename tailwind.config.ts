@@ -7,31 +7,37 @@ export default {
     extend: {
       colors: {
         // Katch Studio palette — applied as CSS variables at runtime
-        // (theme-aware, driven by data in src/data/palette.ts)
+        // (theme-aware, driven by src/index.css token block)
         surface: {
-          0: "var(--ks-surface-0)",
-          1: "var(--ks-surface-1)",
-          2: "var(--ks-surface-2)",
-          3: "var(--ks-surface-3)",
+          0: "rgb(var(--ks-surface-0-rgb) / <alpha-value>)",
+          1: "rgb(var(--ks-surface-1-rgb) / <alpha-value>)",
+          2: "rgb(var(--ks-surface-2-rgb) / <alpha-value>)",
+          3: "rgb(var(--ks-surface-3-rgb) / <alpha-value>)",
         },
         ink: {
-          DEFAULT: "var(--ks-ink)",
-          muted: "var(--ks-ink-muted)",
-          faint: "var(--ks-ink-faint)",
+          DEFAULT: "rgb(var(--ks-ink-rgb) / <alpha-value>)",
+          muted: "rgb(var(--ks-ink-muted-rgb) / <alpha-value>)",
+          faint: "rgb(var(--ks-ink-faint-rgb) / <alpha-value>)",
         },
         line: {
           DEFAULT: "var(--ks-line)",
           strong: "var(--ks-line-strong)",
         },
         brand: {
-          DEFAULT: "var(--ks-brand)",
-          hover: "var(--ks-brand-hover)",
+          DEFAULT: "rgb(var(--ks-brand-rgb) / <alpha-value>)",
+          hover: "rgb(var(--ks-brand-hover-rgb) / <alpha-value>)",
           muted: "var(--ks-brand-muted)",
           ring: "var(--ks-brand-ring)",
         },
         accent: {
+          DEFAULT: "rgb(var(--ks-brand-rgb) / <alpha-value>)",
+          muted: "var(--ks-brand-muted)",
+        },
+        // The Katch accent as a FILL — always #D7FF4F with dark ink on top
+        katch: {
           DEFAULT: "var(--ks-accent)",
-          muted: "var(--ks-accent-muted)",
+          hover: "var(--ks-accent-hover)",
+          ink: "var(--ks-accent-ink)",
         },
         ok: "#34d399",
         warn: "#fbbf24",

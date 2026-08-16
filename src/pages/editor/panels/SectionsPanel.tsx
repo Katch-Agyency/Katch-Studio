@@ -122,7 +122,7 @@ export default function SectionsPanel() {
               key={s.id}
               className={cn(
                 "group rounded-lg border transition-colors",
-                isSelected ? "border-brand/40 bg-brand-muted/60" : "border-line bg-surface-1 hover:border-line-strong",
+                isSelected ? "border-brand-ring bg-brand-muted" : "border-line bg-surface-1 hover:border-line-strong",
                 s.hidden && "opacity-55"
               )}
             >

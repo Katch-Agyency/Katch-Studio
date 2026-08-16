@@ -2,6 +2,7 @@ import { AlertTriangle, CheckCircle2, Info } from "lucide-react";
 import { Badge, Button } from "@/components/ui/ui";
 import { StatusBadge } from "@/components/ui/EmptyState";
 import { TextInput } from "@/components/ui/Fields";
+import { Logo, LogoFull } from "@/components/layout/Logo";
 
 /* ============================================================
    Design System — the shared visual language of Katch Studio.
@@ -9,6 +10,43 @@ import { TextInput } from "@/components/ui/Fields";
    ============================================================ */
 
 const SECTIONS = [
+  {
+    id: "brand",
+    title: "Brand & Tokens",
+    body: (
+      <div className="space-y-5">
+        <div className="flex flex-wrap items-center gap-5">
+          <LogoFull size={64} />
+          <Logo />
+          <Logo compact />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { name: "Accent", varName: "--ks-accent", swatch: "var(--ks-accent)", text: "var(--ks-accent-ink)" },
+            { name: "Background", varName: "--ks-surface-0", swatch: "var(--ks-surface-0)", text: "var(--ks-ink)" },
+            { name: "Card", varName: "--ks-surface-1", swatch: "var(--ks-surface-1)", text: "var(--ks-ink)" },
+            { name: "Raised", varName: "--ks-surface-3", swatch: "var(--ks-surface-3)", text: "var(--ks-ink)" },
+          ].map((t) => (
+            <div key={t.name} className="rounded-xl border border-line bg-surface-1 p-3.5">
+              <span
+                className="block h-10 w-full rounded-lg border border-line"
+                style={{ background: t.swatch, color: t.text }}
+              />
+              <p className="mt-2.5 text-[13px] font-semibold text-ink">{t.name}</p>
+              <p className="mt-0.5 font-mono text-[10.5px] text-ink-faint">{t.varName}</p>
+            </div>
+          ))}
+        </div>
+        <p className="max-w-xl text-xs leading-relaxed text-ink-faint">
+          All tokens live centrally in <code className="rounded bg-surface-2 px-1 py-0.5 text-[11px]">src/index.css</code>{" "}
+          (dark-first; light mode swaps values). The Katch accent{" "}
+          <span className="font-mono text-brand-hover">#D7FF4F</span> is used sparingly — primary CTAs,
+          active states, toggles, selection — never as decoration. Generated client websites have their
+          own theme system driven by project configs.
+        </p>
+      </div>
+    ),
+  },
   {
     id: "typography",
     title: "Typography",
@@ -36,7 +74,6 @@ const SECTIONS = [
         <Button variant="secondary">Secondary</Button>
         <Button variant="ghost">Ghost</Button>
         <Button variant="danger">Destructive</Button>
-        <Button variant="dark-brand">Dark brand</Button>
         <Button variant="primary" size="sm">Small</Button>
         <Button variant="secondary" size="lg">Large</Button>
         <Button variant="primary" disabled>Disabled</Button>

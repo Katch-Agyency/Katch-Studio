@@ -105,7 +105,7 @@ function EditorInner({ projectId }: { projectId: string }) {
     }
   }, [project.config.pages, activePageId]);
 
-  /* Ctrl/Cmd + S saves */
+  /* Ctrl/Cmd + S saves; the command palette can also request a save */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
@@ -113,8 +113,13 @@ function EditorInner({ projectId }: { projectId: string }) {
         save();
       }
     };
+    const onPaletteSave = () => save();
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("katch-studio:save-request", onPaletteSave);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("katch-studio:save-request", onPaletteSave);
+    };
   }, [save]);
 
   const ui = useMemo<EditorUIState>(
@@ -222,7 +227,7 @@ function EditorInner({ projectId }: { projectId: string }) {
           <SaveButton state={saveState} onSave={save} onReset={reset} />
 
           {/* Export */}
-          <Button variant="dark-brand" size="md" onClick={() => setExportOpen(true)} className="hidden sm:inline-flex">
+          <Button variant="secondary" size="md" onClick={() => setExportOpen(true)} className="hidden sm:inline-flex">
             <CloudUpload className="h-4 w-4" /> Export
           </Button>
 
