@@ -1,4 +1,4 @@
-import type { Project } from "./project";
+import type { Project, WebsiteTemplate } from "./project";
 
 /* ============================================================
    Storage adapter — the persistence boundary of Katch Studio.
@@ -11,6 +11,8 @@ export interface StorageSnapshot {
   projects: Project[];
   drafts: Record<string, Project>;
   lastOpenedProjectId: string | null;
+  /** User-duplicated templates (built-ins ship with the app) */
+  customTemplates: WebsiteTemplate[];
   /** True once the workspace has been initialized (prevents demo reseeding after a wipe) */
   seeded: boolean;
 }
@@ -23,5 +25,6 @@ export interface StudioStorageAdapter {
   saveProjects(projects: Project[]): Promise<void>;
   saveDrafts(drafts: Record<string, Project>): Promise<void>;
   saveLastOpened(projectId: string | null): Promise<void>;
+  saveCustomTemplates(templates: WebsiteTemplate[]): Promise<void>;
   markSeeded(): Promise<void>;
 }

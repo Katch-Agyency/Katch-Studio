@@ -1,4 +1,4 @@
-import type { Project } from "@/types";
+import type { Project, WebsiteTemplate } from "@/types";
 import type { StorageSnapshot, StudioStorageAdapter } from "@/types/storage";
 
 /* ============================================================
@@ -10,6 +10,7 @@ const KEYS = {
   projects: "katch-studio:projects:v1",
   drafts: "katch-studio:drafts:v1",
   lastOpened: "katch-studio:lastOpened:v1",
+  customTemplates: "katch-studio:customTemplates:v1",
   seeded: "katch-studio:seeded:v1",
 } as const;
 
@@ -40,6 +41,7 @@ export function createLocalStorageAdapter(): StudioStorageAdapter {
         projects: readJSON<Project[]>(KEYS.projects, []),
         drafts: readJSON<Record<string, Project>>(KEYS.drafts, {}),
         lastOpenedProjectId: readJSON<string | null>(KEYS.lastOpened, null),
+        customTemplates: readJSON<WebsiteTemplate[]>(KEYS.customTemplates, []),
         seeded: localStorage.getItem(KEYS.seeded) === "1",
       };
     },
@@ -51,6 +53,9 @@ export function createLocalStorageAdapter(): StudioStorageAdapter {
     },
     async saveLastOpened(projectId) {
       writeJSON(KEYS.lastOpened, projectId);
+    },
+    async saveCustomTemplates(templates) {
+      writeJSON(KEYS.customTemplates, templates);
     },
     async markSeeded() {
       try {

@@ -47,20 +47,33 @@ Dark-first premium interface with a **single controlled accent: `#D7FF4F`** (the
 Design System ─→ Reusable Components ─→ Reusable Sections ─→ Templates ─→ Project Config ─→ Client Website
 ```
 
-- **`src/types/`** — the data model: `Project`, `WebsiteTemplate`, `PageConfig`, `SectionInstance`, `ThemeConfig`, `BrandConfig`, `FeatureConfig`, `SEO`.
-- **`src/features/sections/registry.ts`** — the section system: 26 reusable, theme-aware sections with smart default content factories.
-- **`src/data/templates.ts`** — 12 templates across 4 categories, each a *composition* of sections (never hardcoded websites).
-- **`src/lib/projectFactory.ts`** — the only path from template → project. Templates are immutable; projects are deep clones.
+- **`src/types/`** — the data model: `Project`, `WebsiteTemplate`, `PageConfig`, `SectionInstance` (with `variant`, `styles`, content), `ThemeConfig`, `BrandConfig`, `FeatureConfig`, `SEO`.
+- **`src/features/sections/registry.ts`** — the section system: 29 reusable, theme-aware sections (incl. Products, Categories, Pricing) with smart default content factories, **visual variants** (14 section types have 2–4 layouts) and layers-tree element maps.
+- **`src/data/templates.ts`** — 20 templates across 6 categories (Restaurant, Business, Landing, Portfolio, E-commerce, SaaS), each a *composition* of sections with realistic demo content and per-section variants.
+- **`src/lib/projectFactory.ts`** — the only path from template → project. Templates are immutable; projects are deep clones. Handles repeated section types and custom (duplicated) templates.
 - **`src/website/`** — the **WebsiteRenderer**: `<WebsiteRenderer project={config} />` resolves pages, sections, theme, features and content. The editor preview and the future exported site use this exact renderer — the preview *is* the site.
-- **`src/pages/editor/`** — the production editor: pages, sections (reorder/duplicate/hide/delete/add), content, brand & theme, features, SEO — with autosave-to-draft and explicit Save.
+- **`src/pages/editor/`** — the three-panel production editor: **Structure** (Layers tree + Pages), **live preview** (desktop/tablet/mobile + edit/preview modes), **contextual Inspector** (Design: variant/spacing/background/alignment/width/responsive visibility · Content: field editors focused from the layers tree · Brand · Features · SEO) — with **undo/redo** (Ctrl+Z / Ctrl+Shift+Z), autosave-to-draft and explicit Save.
+
+## PWA
+
+Katch Studio is installable as a standalone app:
+
+- `public/manifest.webmanifest` (standalone, dark theme, maskable icons from the official logo, app shortcuts)
+- `public/sw.js` — offline app shell (network-first navigation with cached fallback, stale-while-revalidate assets), versioned update flow
+- `src/app/pwa.ts` — install prompt wiring, update-available banner ("A new version is available → Update"), online/offline notice
+- Install button appears in the header and Settings only when the browser supports installation
+- Service worker registers in production builds only (never interferes with Vite dev/HMR)
 
 ## MVP vs. future (honest scope)
 
-**Works today:** dashboard, projects (search/filter/duplicate/delete), the 4-step wizard, live
-preview (desktop/tablet/mobile), multi-page management, per-page sections, full content editing,
+**Works today:** dashboard, projects (search/filter/sort/duplicate/delete), the 4-step wizard,
+three-panel editor (layers tree, contextual design/content inspector, section variants, spacing,
+responsive visibility, undo/redo, edit/preview modes), live preview (desktop/tablet/mobile),
+full-screen preview with device controls, multi-page management, full content editing,
 theme & brand customization, feature toggles, SEO panel, autosave, project duplication,
-configuration + resolved-structure export, full-screen preview, RTL/Arabic websites, demo data,
-**Firestore sync (optional, env-gated — see `docs/FIREBASE.md`)**.
+template duplication (custom templates), 20 templates incl. E-commerce & SaaS,
+configuration + resolved-structure export, RTL/Arabic websites, demo data,
+**Firestore sync (optional, env-gated — see `docs/FIREBASE.md`)**, **PWA install + offline shell**.
 
 **Planned (architected, not implemented):** automated scaffold generation (`client-project/`
 React/Vite output), Firebase Auth with real accounts & team roles, Firebase Storage for assets,

@@ -1,9 +1,11 @@
 import type { ProjectConfig, SectionInstance, SectionType } from "@/types";
-import { resolveSection } from "../renderer";
+import { resolveSection, resolveSectionStyles, SectionStyleProvider, visibilityClass } from "../renderer";
 import { getSectionDefinition } from "@/features/sections/registry";
 
 /* ============================================================
-   Section dispatcher — SectionInstance → React component
+   Section dispatcher — SectionInstance → React component.
+   Wraps every section in its style context (variants, spacing,
+   background, alignment, responsive visibility).
    ============================================================ */
 
 import { AnnouncementBar, FooterSection, NavbarSection } from "./Global";
@@ -21,6 +23,10 @@ import { GallerySection, LocationSection, MenuSection, ReservationSection } from
 import { CaseStudiesSection, IndustriesSection, TeamSection } from "./Business";
 import { ClientsSection, ExperienceSection, ProjectsSection, SkillsSection } from "./Portfolio";
 import { ContactSection, CtaSection, NewsletterSection, WhatsappFloat } from "./Conversion";
+import { CategoriesSection, PricingSection, ProductsSection } from "./Ecommerce";
+
+/** Sections that manage their own full-bleed band (no style wrapper needed) */
+const UNWRAPPED: SectionType[] = ["navbar", "footer", "whatsapp"];
 
 export function SectionRenderer({
   section,
@@ -38,6 +44,24 @@ export function SectionRenderer({
     ordering: project.features.find((f) => f.id === "ordering")?.enabled ?? false,
   };
 
+  const body = renderBody(section, project, content, features);
+
+  if (UNWRAPPED.includes(section.type)) return body;
+
+  const { styles } = resolveSectionStyles(section);
+  return (
+    <SectionStyleProvider section={section}>
+      <div className={visibilityClass(styles.visibility)}>{body}</div>
+    </SectionStyleProvider>
+  );
+}
+
+function renderBody(
+  section: SectionInstance,
+  project: ProjectConfig,
+  content: ReturnType<typeof resolveSection>,
+  features: { contactForm: boolean; whatsapp: boolean; booking: boolean; maps: boolean; ordering: boolean }
+) {
   switch (section.type) {
     case "navbar":
       return <NavbarSection content={content as never} />;
@@ -91,6 +115,12 @@ export function SectionRenderer({
       return features.whatsapp ? <WhatsappFloat content={content as never} /> : null;
     case "footer":
       return <FooterSection content={content as never} />;
+    case "products":
+      return <ProductsSection content={content as never} />;
+    case "categories":
+      return <CategoriesSection content={content as never} />;
+    case "pricing":
+      return <PricingSection content={content as never} />;
     default: {
       /* Error handling for unsupported sections — never silently fail */
       const def = getSectionDefinition(section.type as SectionType);

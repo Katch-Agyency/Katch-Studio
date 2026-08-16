@@ -259,6 +259,24 @@ h4 {
   @apply animate-pulse rounded-md bg-surface-2;
 }
 
+/* Content-editor field highlight (layers-tree focus) */
+.cf-highlight {
+  animation: cf-flash 1.6s ease-out both;
+}
+@keyframes cf-flash {
+  0% {
+    box-shadow: 0 0 0 2px var(--ks-brand-ring);
+    border-radius: 8px;
+  }
+  70% {
+    box-shadow: 0 0 0 2px var(--ks-brand-ring);
+    border-radius: 8px;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
 /* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
   *,

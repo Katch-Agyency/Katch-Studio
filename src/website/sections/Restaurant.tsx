@@ -3,6 +3,7 @@ import {
   SectionHeading,
   SectionShell,
   SmartImage,
+  useSectionStyle,
   useWebsiteTheme,
 } from "@/website/renderer";
 
@@ -12,12 +13,13 @@ import {
 
 export function MenuSection({ content }: { content: MenuContent }) {
   const { radius } = useWebsiteTheme();
+  const { variant } = useSectionStyle();
   const categories = content.categories ?? [];
   if (categories.length === 0) return null;
   return (
     <SectionShell id="menu" tone="alt">
       <SectionHeading title={content.title} subtitle={content.subtitle} center />
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className={`grid gap-6 ${variant === "list" ? "mx-auto max-w-3xl lg:grid-cols-1" : "lg:grid-cols-3"}`}>
         {categories.map((cat) => (
           <div
             key={cat.name}
@@ -59,8 +61,33 @@ export function MenuSection({ content }: { content: MenuContent }) {
 
 export function GallerySection({ content }: { content: GalleryContent }) {
   const { radius } = useWebsiteTheme();
+  const { variant } = useSectionStyle();
   const images = (content.images ?? []).filter((i) => i.src || i.alt);
   if (images.length === 0) return null;
+
+  const r = radius === "none" ? 4 : radius === "sm" ? 8 : 16;
+
+  /* Square — compact social-feed tiles */
+  if (variant === "square") {
+    return (
+      <SectionShell id="gallery">
+        <SectionHeading title={content.title} subtitle={content.subtitle} center />
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-6">
+          {images.map((img, i) => (
+            <figure key={img.src + i} className="group relative overflow-hidden" style={{ borderRadius: r }}>
+              <SmartImage
+                src={img.src}
+                alt={img.alt || "Gallery image"}
+                className="aspect-square w-full object-cover transition-transform duration-300 group-hover:scale-[1.05]"
+              />
+            </figure>
+          ))}
+        </div>
+      </SectionShell>
+    );
+  }
+
+  const mosaic = variant === "mosaic";
   return (
     <SectionShell id="gallery">
       <SectionHeading title={content.title} subtitle={content.subtitle} center />
@@ -68,13 +95,17 @@ export function GallerySection({ content }: { content: GalleryContent }) {
         {images.map((img, i) => (
           <figure
             key={img.src + i}
-            className={`group relative overflow-hidden ${i === 0 ? "col-span-2 row-span-2 md:col-span-2" : ""}`}
-            style={{ borderRadius: radius === "none" ? 4 : radius === "sm" ? 8 : 16 }}
+            className={`group relative overflow-hidden ${
+              mosaic && i === 0 ? "col-span-2 row-span-2 md:col-span-2" : ""
+            }`}
+            style={{ borderRadius: r }}
           >
             <SmartImage
               src={img.src}
               alt={img.alt || "Gallery image"}
-              className="aspect-[4/3] h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+              className={`w-full object-cover transition-transform duration-300 group-hover:scale-[1.04] ${
+                mosaic && i === 0 ? "aspect-[4/3] h-full" : "aspect-[4/3]"
+              }`}
             />
             {img.caption && (
               <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-4 pb-3 pt-8 text-[13px] font-medium text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100">

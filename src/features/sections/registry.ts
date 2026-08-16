@@ -4,12 +4,23 @@ import type { BrandConfig, SectionDefinition, SectionType } from "@/types";
    Section registry — every reusable website section in one place.
    `defaults(brand)` returns generic starter content (never
    client-specific); templates & projects layer their own content
-   on top via deep merge.
+   on top via deep merge. `variants` are layout-only switches;
+   `elements` map the layers tree to content editor anchors.
    ============================================================ */
 
 const brandName = (b: BrandConfig) => b.businessName || "Your Business";
 const wa = (b: BrandConfig) =>
   b.whatsapp ? `https://wa.me/${b.whatsapp.replace(/\D/g, "")}` : "#contact";
+
+/* Shared element sets */
+const E_HEADING = [
+  { id: "heading", label: "Heading", anchor: "cf-heading" },
+  { id: "subtitle", label: "Eyebrow", anchor: "cf-subtitle" },
+];
+const E_HEADING_ITEMS = [
+  ...E_HEADING,
+  { id: "items", label: "Items", anchor: "cf-items" },
+];
 
 export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
   navbar: {
@@ -19,6 +30,11 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Site navigation with logo and call-to-action",
     icon: "navigation",
     categories: "all",
+    elements: [
+      { id: "links", label: "Menu links", anchor: "cf-items" },
+      { id: "button", label: "Button", anchor: "cf-buttons" },
+    ],
+
     defaults: (b) => ({
       nav: [
         { label: "Home", href: "#home" },
@@ -36,6 +52,8 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "A slim bar above the navbar for offers and notices",
     icon: "megaphone",
     categories: "all",
+    elements: [{ id: "text", label: "Text", anchor: "cf-description" }],
+
     defaults: () => ({
       text: "Special offer this month — 20% off all services. Limited time only.",
     }),
@@ -47,6 +65,18 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "The opening statement of the page",
     icon: "sparkles",
     categories: "all",
+    variants: [
+      { id: "split", name: "Split", description: "Text beside an image — the workhorse hero" },
+      { id: "centered", name: "Centered", description: "Everything centered, image below" },
+      { id: "editorial", name: "Editorial", description: "Full-bleed image with a text overlay" },
+      { id: "minimal", name: "Minimal", description: "Typography only — no image" },
+    ],
+    elements: [
+      ...E_HEADING,
+      { id: "description", label: "Description", anchor: "cf-description" },
+      { id: "buttons", label: "Buttons", anchor: "cf-buttons" },
+      { id: "image", label: "Image", anchor: "cf-image" },
+    ],
     defaults: (b) => ({
       title: `Welcome to ${brandName(b)}`,
       subtitle: "",
@@ -65,6 +95,17 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Company story with image and highlights",
     icon: "info",
     categories: "all",
+    variants: [
+      { id: "split", name: "Split", description: "Image beside text" },
+      { id: "stacked", name: "Stacked", description: "Image above text" },
+    ],
+    elements: [
+      ...E_HEADING,
+      { id: "description", label: "Story", anchor: "cf-description" },
+      { id: "image", label: "Image", anchor: "cf-image" },
+      { id: "points", label: "Highlights", anchor: "cf-points" },
+    ],
+
     defaults: (b) => ({
       title: `About ${brandName(b)}`,
       subtitle: "Our story",
@@ -81,6 +122,12 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "A grid of what the business offers",
     icon: "wrench",
     categories: "all",
+    variants: [
+      { id: "cards", name: "Cards", description: "Icon cards in a grid" },
+      { id: "list", name: "List", description: "Horizontal rows" },
+    ],
+    elements: E_HEADING_ITEMS,
+
     defaults: () => ({
       title: "Our Services",
       subtitle: "What we do",
@@ -98,6 +145,12 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Highlight key product or business advantages",
     icon: "layout-grid",
     categories: "all",
+    variants: [
+      { id: "cards", name: "Cards", description: "Icon cards in a grid" },
+      { id: "list", name: "List", description: "Horizontal rows" },
+    ],
+    elements: E_HEADING_ITEMS,
+
     defaults: () => ({
       title: "Why Choose Us",
       subtitle: "What sets us apart",
@@ -115,6 +168,12 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Key numbers that build trust",
     icon: "bar-chart-3",
     categories: "all",
+    variants: [
+      { id: "grid", name: "Grid", description: "Numbers in a row" },
+      { id: "band", name: "Band", description: "Full-width accent band" },
+    ],
+    elements: [{ id: "items", label: "Stats", anchor: "cf-items" }],
+
     defaults: () => ({
       items: [
         { value: "10+", label: "Years of experience" },
@@ -130,6 +189,8 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "How the work gets done, step by step",
     icon: "list-ordered",
     categories: "all",
+    elements: E_HEADING_ITEMS,
+
     defaults: () => ({
       title: "How It Works",
       subtitle: "Our process",
@@ -147,6 +208,12 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Social proof from real clients",
     icon: "quote",
     categories: "all",
+    variants: [
+      { id: "cards", name: "Cards", description: "Three-column cards" },
+      { id: "single", name: "Single", description: "One large featured quote" },
+    ],
+    elements: E_HEADING_ITEMS,
+
     defaults: () => ({
       title: "What Clients Say",
       subtitle: "Testimonials",
@@ -164,6 +231,8 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Common questions, answered",
     icon: "help-circle",
     categories: "all",
+    elements: E_HEADING_ITEMS,
+
     defaults: () => ({
       title: "Frequently Asked Questions",
       subtitle: "FAQ",
@@ -181,6 +250,12 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Food menu with categories and prices",
     icon: "utensils",
     categories: ["restaurant"],
+    variants: [
+      { id: "columns", name: "Columns", description: "Categories side by side" },
+      { id: "list", name: "List", description: "One category per row" },
+    ],
+    elements: E_HEADING_ITEMS,
+
     defaults: () => ({
       title: "Our Menu",
       subtitle: "Made fresh every day",
@@ -216,6 +291,13 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "A visual tour of the space and the work",
     icon: "image",
     categories: ["restaurant", "portfolio", "business"],
+    variants: [
+      { id: "grid", name: "Grid", description: "Uniform grid" },
+      { id: "mosaic", name: "Mosaic", description: "One large feature tile" },
+      { id: "square", name: "Square", description: "Compact square tiles — for social feeds" },
+    ],
+    elements: E_HEADING_ITEMS,
+
     defaults: () => ({
       title: "Gallery",
       subtitle: "A look inside",
@@ -233,6 +315,11 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Book a table via WhatsApp or phone",
     icon: "calendar-check",
     categories: ["restaurant"],
+    elements: [
+      ...E_HEADING,
+      { id: "note", label: "Note", anchor: "cf-description" },
+    ],
+
     defaults: (b) => ({
       title: "Reserve a Table",
       subtitle: "We'd love to host you",
@@ -246,6 +333,12 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Address, hours and a map",
     icon: "map-pin",
     categories: "all",
+    elements: [
+      ...E_HEADING,
+      { id: "hours", label: "Hours", anchor: "cf-items" },
+      { id: "map", label: "Map query", anchor: "cf-description" },
+    ],
+
     defaults: (b) => ({
       title: "Find Us",
       subtitle: "Visit us today",
@@ -263,6 +356,8 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "The people behind the business",
     icon: "users",
     categories: ["business", "portfolio", "saas"],
+    elements: E_HEADING_ITEMS,
+
     defaults: () => ({
       title: "Meet the Team",
       subtitle: "The people behind the work",
@@ -280,6 +375,8 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Results you have delivered for clients",
     icon: "briefcase",
     categories: ["business", "saas"],
+    elements: E_HEADING_ITEMS,
+
     defaults: () => ({
       title: "Case Studies",
       subtitle: "Results that speak",
@@ -297,6 +394,8 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "The sectors you serve",
     icon: "factory",
     categories: ["business"],
+    elements: E_HEADING_ITEMS,
+
     defaults: () => ({
       title: "Industries We Serve",
       subtitle: "Deep experience across sectors",
@@ -310,6 +409,8 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Selected work showcase",
     icon: "folder-kanban",
     categories: ["portfolio", "business"],
+    elements: E_HEADING_ITEMS,
+
     defaults: () => ({
       title: "Selected Work",
       subtitle: "Projects we're proud of",
@@ -327,6 +428,8 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Capabilities with proficiency levels",
     icon: "gauge",
     categories: ["portfolio", "business"],
+    elements: E_HEADING_ITEMS,
+
     defaults: () => ({
       title: "Skills",
       subtitle: "What I'm great at",
@@ -344,6 +447,8 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Career timeline",
     icon: "milestone",
     categories: ["portfolio"],
+    elements: E_HEADING_ITEMS,
+
     defaults: () => ({
       title: "Experience",
       subtitle: "Where I've worked",
@@ -360,6 +465,8 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Logos of brands you've worked with",
     icon: "handshake",
     categories: ["portfolio", "business"],
+    elements: E_HEADING_ITEMS,
+
     defaults: () => ({
       title: "Trusted By",
       subtitle: "Companies I've worked with",
@@ -373,6 +480,16 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "A focused prompt to take the next step",
     icon: "arrow-right-circle",
     categories: "all",
+    variants: [
+      { id: "banner", name: "Banner", description: "Accent band with buttons" },
+      { id: "simple", name: "Simple", description: "Quiet text and buttons" },
+    ],
+    elements: [
+      { id: "heading", label: "Heading", anchor: "cf-heading" },
+      { id: "description", label: "Text", anchor: "cf-description" },
+      { id: "buttons", label: "Buttons", anchor: "cf-buttons" },
+    ],
+
     defaults: (b) => ({
       title: `Ready to work with ${brandName(b)}?`,
       text: "Let's talk about your next project — we're one message away.",
@@ -387,6 +504,15 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Contact details and a message form",
     icon: "mail",
     categories: "all",
+    variants: [
+      { id: "split", name: "Split", description: "Details beside the form" },
+      { id: "centered", name: "Centered", description: "Everything centered" },
+    ],
+    elements: [
+      ...E_HEADING,
+      { id: "info", label: "Contact details", anchor: "cf-info" },
+    ],
+
     defaults: (b) => ({
       title: "Get in Touch",
       subtitle: "We'd love to hear from you",
@@ -406,6 +532,11 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Email capture for updates and offers",
     icon: "send",
     categories: "all",
+    elements: [
+      { id: "heading", label: "Heading", anchor: "cf-heading" },
+      { id: "subtitle", label: "Subtitle", anchor: "cf-subtitle" },
+    ],
+
     defaults: () => ({
       title: "Stay in the Loop",
       subtitle: "Get the latest news and offers, straight to your inbox.",
@@ -418,6 +549,11 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "A floating WhatsApp chat button",
     icon: "message-circle",
     categories: "all",
+    elements: [
+      { id: "label", label: "Button label", anchor: "cf-heading" },
+      { id: "number", label: "Number", anchor: "cf-description" },
+    ],
+
     defaults: (b) => ({
       title: "Chat with us",
       text: "We usually reply within minutes.",
@@ -433,6 +569,15 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
     description: "Closing block with links and contact",
     icon: "panel-bottom",
     categories: "all",
+    variants: [
+      { id: "columns", name: "Columns", description: "Link columns" },
+      { id: "minimal", name: "Minimal", description: "Brand + copyright only" },
+    ],
+    elements: [
+      { id: "text", label: "Copyright", anchor: "cf-description" },
+      { id: "columns", label: "Link columns", anchor: "cf-items" },
+    ],
+
     defaults: (b) => ({
       text: `© ${new Date().getFullYear()} ${brandName(b)}. All rights reserved.`,
       columns: [
@@ -448,6 +593,101 @@ export const SECTION_DEFINITIONS: Record<SectionType, SectionDefinition> = {
       ],
     }),
   },
+
+  /* ---------------- E-commerce & SaaS ---------------- */
+  products: {
+    type: "products",
+    name: "Products",
+    group: "ecommerce",
+    description: "A shoppable product grid with prices and ratings",
+    icon: "shopping-bag",
+    categories: ["ecommerce", "restaurant"],
+    variants: [
+      { id: "grid", name: "Grid 3-up", description: "Three products per row" },
+      { id: "wide", name: "Grid 4-up", description: "Four products per row" },
+    ],
+    elements: E_HEADING_ITEMS,
+    defaults: () => ({
+      title: "Shop the Collection",
+      subtitle: "Bestsellers",
+      showPrices: true,
+      columns: 3,
+      items: [
+        { name: "Signature Product", category: "Category", price: "₾ 249", rating: 5, image: "" },
+        { name: "Everyday Essential", category: "Category", price: "₾ 149", rating: 5, image: "" },
+        { name: "Limited Edition", category: "Category", price: "₾ 349", compareAt: "₾ 449", badge: "Sale", rating: 4, image: "" },
+      ],
+    }),
+  },
+  categories: {
+    type: "categories",
+    name: "Categories",
+    group: "ecommerce",
+    description: "Clickable collection tiles with images",
+    icon: "layout-grid",
+    categories: ["ecommerce"],
+    variants: [
+      { id: "grid", name: "Grid", description: "Equal tiles" },
+      { id: "overlay", name: "Overlay", description: "Labels over full-bleed images" },
+    ],
+    elements: E_HEADING_ITEMS,
+    defaults: () => ({
+      title: "Shop by Category",
+      subtitle: "Find your fit",
+      items: [
+        { label: "Category One", image: "" },
+        { label: "Category Two", image: "" },
+        { label: "Category Three", image: "" },
+      ],
+    }),
+  },
+  pricing: {
+    type: "pricing",
+    name: "Pricing",
+    group: "conversion",
+    description: "Plans and tiers with a highlighted option",
+    icon: "tag",
+    categories: ["saas", "business"],
+    variants: [
+      { id: "three", name: "Three tiers", description: "Standard three-column pricing" },
+      { id: "two", name: "Two tiers", description: "Two side-by-side plans" },
+    ],
+    elements: E_HEADING_ITEMS,
+    defaults: () => ({
+      title: "Simple, honest pricing",
+      subtitle: "Plans",
+      tiers: [
+        {
+          name: "Starter",
+          price: "$19",
+          period: "/month",
+          description: "For individuals getting started.",
+          features: ["Core features", "1 project", "Community support"],
+          cta: { label: "Start Free", href: "#", variant: "secondary" },
+          highlighted: false,
+        },
+        {
+          name: "Pro",
+          price: "$49",
+          period: "/month",
+          description: "For growing teams that need more.",
+          features: ["Everything in Starter", "Unlimited projects", "Priority support", "Advanced analytics"],
+          cta: { label: "Get Pro", href: "#", variant: "primary" },
+          highlighted: true,
+        },
+        {
+          name: "Enterprise",
+          price: "Custom",
+          period: "",
+          description: "For organizations at scale.",
+          features: ["Everything in Pro", "SSO & permissions", "Dedicated manager", "Custom SLA"],
+          cta: { label: "Contact Sales", href: "#", variant: "secondary" },
+          highlighted: false,
+        },
+      ],
+    }),
+  },
+
 };
 
 export const SECTION_TYPES = Object.keys(SECTION_DEFINITIONS) as SectionType[];

@@ -78,6 +78,10 @@ export interface WebsiteTemplate {
   accentColor: string;
   /** Sections added (in order) to the first page */
   defaultSections: SectionType[];
+  /** Layout variant per section type (e.g. { hero: "editorial" }) */
+  sectionVariants?: Partial<Record<SectionType, string>>;
+  /** Realistic starter content per section type (deep-merged over defaults) */
+  defaultContent?: Partial<Record<SectionType, Record<string, unknown>>>;
   pages: { name: string; path: string; sections: SectionType[] }[];
   themePresetId: string;
   features: string[]; // feature ids enabled by default

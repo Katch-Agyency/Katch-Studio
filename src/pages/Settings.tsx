@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Cloud, Database, Download, HardDrive, Moon, Palette, RefreshCw, Sun, Trash2 } from "lucide-react";
+import { AppWindow, Cloud, Database, Download, HardDrive, Moon, Palette, RefreshCw, Sun, Trash2 } from "lucide-react";
+import { InstallButton } from "@/components/layout/PwaStatus";
 import { useStore } from "@/app/store";
 import { useStudioTheme } from "@/app/theme";
 import { useToast } from "@/app/toast";
@@ -109,6 +110,23 @@ export default function Settings() {
               ? "Projects, drafts and workspace state sync to Firestore — shared across the team and safe across browsers."
               : "Projects live in this browser only. Add Firebase variables to .env to sync to Firestore — full guide in docs/FIREBASE.md."}
           </p>
+        </div>
+      </section>
+
+      {/* Install */}
+      <section className="card mt-4 p-5">
+        <h2 className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wider text-ink-muted">
+          <AppWindow className="h-4 w-4" /> Install App
+        </h2>
+        <div className="mt-4">
+          <p className="text-[14px] font-medium text-ink">Run Katch Studio as a desktop app</p>
+          <p className="mt-1 text-xs leading-relaxed text-ink-faint">
+            Installs to your device with its own window, app icon and offline shell. The install button
+            appears only when your browser supports it (Chrome / Edge / Safari on desktop and mobile).
+          </p>
+          <div className="mt-3">
+            <InstallButton />
+          </div>
         </div>
       </section>
 

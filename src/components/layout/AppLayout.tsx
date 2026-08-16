@@ -19,6 +19,7 @@ import {
 import { Logo, LogoMark } from "./Logo";
 import CommandPalette, { PALETTE_OPEN_EVENT } from "./CommandPalette";
 import CloudStatusBanner from "./CloudStatusBanner";
+import PwaStatus, { InstallButton } from "./PwaStatus";
 import { useStudioTheme } from "@/app/theme";
 import { Avatar, Kbd } from "@/components/ui/ui";
 import { cn } from "@/utils/helpers";
@@ -228,6 +229,7 @@ export default function AppLayout() {
             <Search className="h-4 w-4" />
           </button>
 
+          <InstallButton compact />
           <button className="btn-icon" onClick={toggle} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
@@ -236,6 +238,8 @@ export default function AppLayout() {
 
         {/* Deployed-but-not-connected warning (invisible on localhost / when Firestore is active) */}
         <CloudStatusBanner />
+        {/* Offline notice + update-available banner */}
+        <PwaStatus />
 
         <main className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />

@@ -1,9 +1,11 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import type { Project, ProjectStatus, StudioState } from "@/types";
+import type { Project, ProjectStatus, StudioState, WebsiteTemplate } from "@/types";
 import type { StorageSnapshot, StudioStorageAdapter } from "@/types/storage";
 import { createLocalStorageAdapter } from "@/storage/local";
 import { buildDemoProjects } from "@/data/demo";
 import { createProjectFromTemplate, duplicateProject as cloneProject, type CreateProjectInput } from "@/lib/projectFactory";
+import { TEMPLATES } from "@/data/templates";
+import { uid } from "@/utils/helpers";
 import { useToast } from "@/app/toast";
 
 /* ============================================================
@@ -49,6 +51,8 @@ export interface StudioStore extends StudioState {
   hydrated: boolean;
   storageKind: StudioStorageAdapter["kind"];
   storageLabel: string;
+  /** Built-in + user-duplicated templates */
+  allTemplates: WebsiteTemplate[];
   createProject: (input: CreateProjectInput) => Project;
   saveProject: (project: Project) => void;
   updateDraft: (draft: Project) => void;
@@ -59,6 +63,7 @@ export interface StudioStore extends StudioState {
   getProject: (id: string) => Project | undefined;
   resetDemoData: () => void;
   clearAllData: () => void;
+  duplicateTemplate: (id: string) => WebsiteTemplate | undefined;
 }
 
 const StoreContext = createContext<StudioStore | null>(null);
@@ -70,6 +75,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [adapter, setAdapter] = useState<StudioStorageAdapter | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [drafts, setDrafts] = useState<Record<string, Project>>({});
+  const [customTemplates, setCustomTemplates] = useState<WebsiteTemplate[]>([]);
   const [lastOpenedProjectId, setLastOpenedProjectId] = useState<string | null>(null);
 
   /* Throttled sync-error reporting — never silently fail, never spam */
@@ -117,6 +123,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
       setProjects(loadedProjects);
       setDrafts(snap?.drafts ?? {});
+      setCustomTemplates(snap?.customTemplates ?? []);
       setLastOpenedProjectId(snap?.lastOpenedProjectId ?? null);
       setAdapter(active);
       setHydrated(true);
@@ -145,6 +152,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (!hydrated || !adapter) return;
     adapter.saveLastOpened(lastOpenedProjectId).catch(reportSyncError);
   }, [lastOpenedProjectId, hydrated, adapter, reportSyncError]);
+
+  useEffect(() => {
+    if (!hydrated || !adapter) return;
+    adapter.saveCustomTemplates(customTemplates).catch(reportSyncError);
+  }, [customTemplates, hydrated, adapter, reportSyncError]);
 
   /* ---------- Actions ---------- */
 
@@ -216,14 +228,37 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const clearAllData = useCallback(() => {
     setProjects([]);
     setDrafts({});
+    setCustomTemplates([]);
     setLastOpenedProjectId(null);
   }, []);
+
+  const duplicateTemplate = useCallback(
+    (id: string) => {
+      const source = TEMPLATES.find((t) => t.id === id) ?? customTemplates.find((t) => t.id === id);
+      if (!source) return undefined;
+      const copy: WebsiteTemplate = {
+        ...structuredClone(source),
+        id: `tpl-custom-${uid()}`,
+        name: `${source.name} (Copy)`,
+        featured: false,
+      };
+      setCustomTemplates((prev) => [copy, ...prev]);
+      return copy;
+    },
+    [customTemplates]
+  );
+
+  const allTemplates = useMemo<WebsiteTemplate[]>(
+    () => [...customTemplates, ...TEMPLATES],
+    [customTemplates]
+  );
 
   const value = useMemo<StudioStore>(
     () => ({
       hydrated,
       storageKind: adapter?.kind ?? "local",
       storageLabel: adapter?.label ?? "Local browser storage",
+      allTemplates,
       projects,
       drafts,
       lastOpenedProjectId,
@@ -237,6 +272,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       getProject,
       resetDemoData,
       clearAllData,
+      duplicateTemplate,
     }),
     [
       hydrated,
@@ -254,6 +290,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       getProject,
       resetDemoData,
       clearAllData,
+      duplicateTemplate,
+      allTemplates,
     ]
   );
 

@@ -17,6 +17,7 @@ export function StringField({
   area,
   hint,
   placeholder,
+  id,
 }: {
   label: string;
   value: string;
@@ -24,9 +25,11 @@ export function StringField({
   area?: boolean;
   hint?: string;
   placeholder?: string;
+  /** Content-editor anchor id (for layers-tree focus) */
+  id?: string;
 }) {
   return (
-    <Field label={label} hint={hint}>
+    <Field label={label} hint={hint} id={id}>
       {area ? (
         <TextArea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
       ) : (
@@ -40,13 +43,15 @@ export function CTAFields({
   label,
   cta,
   onChange,
+  id,
 }: {
   label: string;
   cta: CTA;
   onChange: (cta: CTA) => void;
+  id?: string;
 }) {
   return (
-    <div className="rounded-lg border border-line bg-surface-0/40 p-3">
+    <div id={id} className="rounded-lg border border-line bg-surface-0/40 p-3 transition-shadow">
       <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-ink-faint">{label}</p>
       <div className="grid gap-2.5 sm:grid-cols-2">
         <TextInput
@@ -83,15 +88,17 @@ export function StringListField({
   onChange,
   placeholder,
   addLabel = "Add item",
+  id,
 }: {
   label: string;
   items: string[];
   onChange: (items: string[]) => void;
   placeholder?: string;
   addLabel?: string;
+  id?: string;
 }) {
   return (
-    <div>
+    <div id={id}>
       <p className="label">{label}</p>
       <div className="space-y-2">
         {items.map((item, i) => (
@@ -127,6 +134,7 @@ export function KeyValueField<T>({
   renderItem,
   addLabel = "Add item",
   newItem,
+  id,
 }: {
   label: string;
   items: T[];
@@ -134,9 +142,10 @@ export function KeyValueField<T>({
   renderItem: (item: T, update: (patch: Partial<T>) => void, remove: () => void) => React.ReactNode;
   addLabel?: string;
   newItem: () => T;
+  id?: string;
 }) {
   return (
-    <div>
+    <div id={id}>
       <p className="label">{label}</p>
       <div className="space-y-2.5">
         {items.map((item, i) => (
@@ -163,6 +172,7 @@ export function ImageField({
   onChange,
   onAltChange,
   hint,
+  id,
 }: {
   label: string;
   value: string;
@@ -170,9 +180,10 @@ export function ImageField({
   onChange: (v: string) => void;
   onAltChange: (v: string) => void;
   hint?: string;
+  id?: string;
 }) {
   return (
-    <div className="space-y-2.5">
+    <div id={id} className="space-y-2.5">
       <ImagePicker value={value} onChange={onChange} label={label} />
       <TextInput value={alt} onChange={(e) => onAltChange(e.target.value)} placeholder="Image alt text (accessibility)" aria-label={`${label} alt text`} />
       {hint && <p className="text-xs text-ink-faint">{hint}</p>}

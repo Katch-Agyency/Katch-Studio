@@ -3,10 +3,12 @@ import type {
   BrandConfig,
   ProjectConfig,
   SectionInstance,
+  SectionStyles,
   ThemeConfig,
 } from "@/types";
 import { getSectionDefinition } from "@/features/sections/registry";
-import { deepMerge } from "@/utils/helpers";
+import { deepMerge, cn } from "@/utils/helpers";
+import { defaultSectionStyles, SPACING_SCALE } from "@/types";
 import { RADIUS_CLASS, CARD_CLASS } from "@/data/palette";
 import { getFontPair } from "@/data/fonts";
 
@@ -22,6 +24,49 @@ export function resolveSection(section: SectionInstance, brand: BrandConfig) {
   const def = getSectionDefinition(section.type);
   const defaults = def.defaults(brand);
   return deepMerge(defaults, section.content);
+}
+
+/** Resolved per-section styles + variant */
+export function resolveSectionStyles(section: SectionInstance): { styles: SectionStyles; variant: string } {
+  return {
+    styles: deepMerge(defaultSectionStyles(), section.styles ?? {}),
+    variant: section.variant && getSectionDefinition(section.type).variants?.some((v) => v.id === section.variant)
+      ? section.variant
+      : "default",
+  };
+}
+
+/* ---------- Per-section style context ---------- */
+
+export interface SectionStyleCtx {
+  variant: string;
+  styles: SectionStyles;
+}
+
+const SectionCtx = createContext<SectionStyleCtx | null>(null);
+
+export function useSectionStyle(): SectionStyleCtx {
+  return useContext(SectionCtx) ?? { variant: "default", styles: defaultSectionStyles() };
+}
+
+export function SectionStyleProvider({
+  section,
+  children,
+}: {
+  section: SectionInstance;
+  children: React.ReactNode;
+}) {
+  const resolved = useMemo(() => resolveSectionStyles(section), [section]);
+  return <SectionCtx.Provider value={resolved}>{children}</SectionCtx.Provider>;
+}
+
+/* Visibility: mobile = base, tablet = md+, desktop = lg+ */
+export function visibilityClass(v: SectionStyles["visibility"]): string {
+  return cn(
+    v.mobile ? "" : "hidden",
+    v.tablet ? "md:block" : "md:hidden",
+    v.desktop ? "lg:block" : "lg:hidden"
+  );
 }
 
 /* ---------- Website theme context ---------- */
@@ -126,6 +171,14 @@ export function WebsiteThemeProvider({
 
 /* ---------- Small shared primitives ---------- */
 
+const MAX_WIDTH_CLS: Record<string, string> = {
+  sm: "max-w-2xl",
+  md: "max-w-4xl",
+  lg: "max-w-5xl",
+  xl: "max-w-6xl",
+  full: "max-w-none",
+};
+
 export function SectionShell({
   id,
   className = "",
@@ -138,14 +191,44 @@ export function SectionShell({
   tone?: "default" | "alt" | "primary";
 }) {
   const { density } = useWebsiteTheme();
+  const { styles } = useSectionStyle();
+
+  /* Section-level design overrides win over theme density/tone */
+  const spacingCls = SPACING_SCALE.find((s) => s.id === styles.spacing)?.cls ?? density;
+  const backgroundCls =
+    styles.background === "transparent"
+      ? ""
+      : styles.background === "surface"
+        ? "bg-[var(--wp-surface)]"
+        : styles.background === "subtle"
+          ? "bg-[color-mix(in_srgb,var(--wp-primary)_6%,transparent)]"
+          : "bg-[var(--wp-secondary)]";
+
   const tones: Record<string, string> = {
     default: "",
     alt: "bg-[var(--wp-surface)]",
     primary: "bg-[var(--wp-primary)]",
   };
+
   return (
-    <section id={id} className={`${density} ${tones[tone]} ${className}`}>
-      <div className="mx-auto w-full max-w-6xl px-5 md:px-8">{children}</div>
+    <section
+      id={id}
+      className={cn(
+        spacingCls,
+        backgroundCls || tones[tone],
+        className,
+        styles.background === "dark" && "[&_h2]:text-[var(--wp-bg)] [&_p]:text-[color-mix(in_srgb,var(--wp-bg)_75%,transparent)]"
+      )}
+    >
+      <div
+        className={cn(
+          "mx-auto w-full px-5 md:px-8",
+          MAX_WIDTH_CLS[styles.maxWidth] ?? "max-w-6xl",
+          styles.align === "center" && "text-center"
+        )}
+      >
+        {children}
+      </div>
     </section>
   );
 }

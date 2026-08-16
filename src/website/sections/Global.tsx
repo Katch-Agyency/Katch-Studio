@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import type { FooterContent, NavbarContent, AnnouncementContent } from "@/types";
-import { useWebsiteTheme } from "@/website/renderer";
+import { useSectionStyle, useWebsiteTheme } from "@/website/renderer";
 
 /* ============================================================
    Global sections — Navbar, Announcement Bar, Footer
@@ -134,6 +134,24 @@ export function AnnouncementBar({ content }: { content: AnnouncementContent }) {
 
 export function FooterSection({ content }: { content: FooterContent }) {
   const { brand } = useWebsiteTheme();
+  const { variant } = useSectionStyle();
+
+  /* Minimal variant — brand + copyright only */
+  if (variant === "minimal") {
+    return (
+      <footer style={{ background: "var(--wp-secondary)", color: "var(--wp-bg)" }}>
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-3 px-5 py-10 text-center md:flex-row md:justify-between md:px-8 md:text-left">
+          <p className="text-[15px] font-bold" style={{ fontFamily: "var(--wp-font-heading)" }}>
+            {brand.logoText || brand.businessName}
+          </p>
+          <p className="text-xs opacity-60">
+            {content.text || `© ${new Date().getFullYear()} ${brand.businessName}. All rights reserved.`}
+          </p>
+        </div>
+      </footer>
+    );
+  }
+
   return (
     <footer style={{ background: "var(--wp-secondary)", color: "var(--wp-bg)" }}>
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:px-8">

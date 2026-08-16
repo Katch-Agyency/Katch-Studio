@@ -162,21 +162,33 @@ const lookyId = saved.find((p) => p.config.projectInfo.name === "Looky Cakes")?.
 nav(`/editor/${lookyId}`);
 await waitFor(() => text().includes("Signature Cakes"));
 ok(text().includes("Saved"), "save state indicator");
-ok(text().includes("Pages") && text().includes("Sections") && text().includes("Brand"), "editor tabs");
-/* ALL six editor tabs must be visible — the tab strip wraps instead of clipping */
-const tabNav = document.querySelector("nav[aria-label='Editor tabs']");
-ok(Boolean(tabNav), "editor tab strip exists");
-if (tabNav) {
-  const labels = [...tabNav.querySelectorAll("button")].map((b) => b.textContent.trim());
-  const expected = ["Pages", "Sections", "Content", "Brand", "Features", "SEO"];
-  ok(expected.every((l) => labels.some((x) => x === l)), `all 6 tabs present (${labels.join(", ")})`);
-  ok(!tabNav.className.includes("overflow-x-auto"), "tab strip wraps — nothing can be clipped");
+ok(text().includes("Pages") && text().includes("Layers") && text().includes("Brand"), "editor structure & inspector tabs");
+/* Structure tabs: Pages + Layers; Inspector tabs: Design, Content, Brand, Features, SEO */
+const structNav = document.querySelector("nav[aria-label='Structure tabs']");
+ok(Boolean(structNav), "structure tab strip exists");
+if (structNav) {
+  const labels = [...structNav.querySelectorAll("button")].map((b) => b.textContent.trim());
+  ok(labels.includes("Pages") && labels.includes("Layers"), `structure tabs (${labels.join(", ")})`);
 }
-/* All project pages visible in the page-tab row */
-const pageTabs = [...document.querySelectorAll("div.flex-wrap button")].filter((b) =>
-  b.textContent.trim() === "Home" || b.textContent.trim() === "Menu"
+const inspNav = document.querySelector("nav[aria-label='Inspector tabs']");
+ok(Boolean(inspNav), "inspector tab strip exists");
+if (inspNav) {
+  const labels = [...inspNav.querySelectorAll("button")].map((b) => b.textContent.trim());
+  const expected = ["Design", "Content", "Brand", "Features", "SEO"];
+  ok(expected.every((l) => labels.includes(l)), `all 5 inspector tabs (${labels.join(", ")})`);
+}
+/* Layers tree: sections listed (collapse/expand controls present) */
+await waitFor(() =>
+  [...document.querySelectorAll("button")].some((b) =>
+    /^(Expand|Collapse) /.test(b.getAttribute("aria-label") ?? "")
+  )
 );
-ok(pageTabs.length >= 2, "page tabs visible (Home, Menu…)");
+ok(
+  [...document.querySelectorAll("button")].some((b) =>
+    /^(Expand|Collapse) /.test(b.getAttribute("aria-label") ?? "")
+  ),
+  "layers tree lists sections"
+);
 ok(text().includes("Signature Cakes"), "preview renders menu content");
 ok(text().includes("Order on WhatsApp"), "preview renders CTA content");
 ok(text().includes("Chocolate Ganache"), "preview renders menu items");
@@ -191,9 +203,11 @@ ok(text().includes("حواوشي لحمة بلدي"), "Arabic menu items render"
 
 console.log("\n6) Library pages");
 nav("/templates");
-await waitFor(() => document.querySelectorAll("img").length >= 12);
-ok(document.querySelectorAll("img").length >= 12, "12 template preview images");
-ok(text().includes("Elegant Restaurant") && text().includes("Developer Portfolio"), "template names");
+await waitFor(() => document.querySelectorAll("img").length >= 20);
+ok(document.querySelectorAll("img").length >= 20, "20 template preview images");
+ok(text().includes("Elegant Restaurant") && text().includes("Developer Portfolio"), "classic template names");
+ok(text().includes("Fashion Editorial") && text().includes("AI Product"), "e-commerce & SaaS templates listed");
+ok(text().includes("E-commerce") && text().includes("SaaS"), "new category filters shown");
 nav("/sections");
 await waitFor(() => text().includes("Reservation"));
 ok(text().includes("Navbar") && text().includes("Reservation") && text().includes("Case Studies"), "section library");
@@ -225,13 +239,81 @@ const hideBtn = [...document.querySelectorAll("button")].find((b) =>
 );
 if (hideBtn) {
   hideBtn.click();
-  await waitFor(() => text().includes("Hidden in preview"));
-  ok(text().includes("Hidden in preview"), "hidden section flagged");
+  await waitFor(() => text().includes("Hidden"));
+  ok(text().includes("Hidden"), "hidden section flagged");
   /* the save-state pill cycles Unsaved→Saving→Saved; assert the durable outcome */
   await waitFor(() => text().includes("Saved"));
   ok(text().includes("Saved"), "autosave cycle completed back to Saved");
 } else {
   ok(false, "hide button found");
+}
+
+console.log("\n8b) Variants, undo/redo, preview mode");
+{
+  /* Select the hero section in the layers tree */
+  const heroRow = [...document.querySelectorAll("button")].find(
+    (b) => b.textContent.trim() === "Hero" && b.closest("[aria-label='Structure panel']")
+  );
+  heroRow?.click();
+  await waitFor(() => text().includes("Variant"));
+  ok(text().includes("Variant"), "Design inspector shows variant control");
+
+  /* Change variant → config updated */
+  const variantBtn = [...document.querySelectorAll("button")].find(
+    (b) => b.textContent.includes("Centered") && b.textContent.includes("Text beside") === false && text().includes("Section settings")
+  );
+  const centeredBtn = [...document.querySelectorAll("button")].find((b) => b.textContent.trim().startsWith("Centered"));
+  centeredBtn?.click();
+  await waitFor(() => {
+    const drafts = JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}");
+    const hero = drafts[lookyId]?.config.sections.find((s) => s.type === "hero");
+    return hero?.variant === "centered";
+  });
+  let drafts = JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}");
+  let heroSec = drafts[lookyId]?.config.sections.find((s) => s.type === "hero");
+  ok(heroSec?.variant === "centered", "variant change persisted to the config");
+
+  /* Undo → variant reverted */
+  dom.window.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true }));
+  await waitFor(() => {
+    const d = JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}");
+    const h = d[lookyId]?.config.sections.find((s) => s.type === "hero");
+    return !h?.variant || h.variant === "split";
+  }, 4000);
+  drafts = JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}");
+  heroSec = drafts[lookyId]?.config.sections.find((s) => s.type === "hero");
+  ok(!heroSec?.variant || heroSec.variant === "split", "Ctrl+Z undid the variant change");
+
+  /* Redo → variant back */
+  dom.window.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "z", ctrlKey: true, shiftKey: true, bubbles: true }));
+  await waitFor(() => {
+    const d = JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}");
+    const h = d[lookyId]?.config.sections.find((s) => s.type === "hero");
+    return h?.variant === "centered";
+  }, 4000);
+  drafts = JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}");
+  heroSec = drafts[lookyId]?.config.sections.find((s) => s.type === "hero");
+  ok(heroSec?.variant === "centered", "Ctrl+Shift+Z redid the variant change");
+
+  /* Undo again + revert to split to keep demo data tidy */
+  dom.window.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "z", ctrlKey: true, bubbles: true }));
+  await new Promise((r) => setTimeout(r, 900));
+
+  /* Preview mode hides the panels */
+  const previewModeBtn = [...document.querySelectorAll("[aria-label='Editor mode'] button")].find(
+    (b) => b.getAttribute("aria-selected") === "false" && b.textContent.includes("Preview")
+  );
+  previewModeBtn?.click();
+  await waitFor(() => !document.querySelector("nav[aria-label='Structure tabs']"));
+  ok(!document.querySelector("nav[aria-label='Structure tabs']"), "preview mode hides the structure panel");
+  ok(!document.querySelector("nav[aria-label='Inspector tabs']"), "preview mode hides the inspector");
+  ok(text().includes("Signature Cakes"), "preview still renders the website");
+  const editModeBtn = [...document.querySelectorAll("[aria-label='Editor mode'] button")].find(
+    (b) => b.getAttribute("aria-selected") === "false"
+  );
+  editModeBtn?.click();
+  await waitFor(() => Boolean(document.querySelector("nav[aria-label='Structure tabs']")));
+  ok(Boolean(document.querySelector("nav[aria-label='Structure tabs']")), "back to edit mode");
 }
 
 console.log("\n9) Persistence (draft autosave written)");

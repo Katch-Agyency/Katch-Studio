@@ -40,14 +40,14 @@ export const WEBSITE_CATEGORIES: WebsiteCategory[] = [
     label: "E-commerce",
     description: "Online stores with products and checkout",
     icon: "shopping-bag",
-    available: false,
+    available: true,
   },
   {
     id: "saas",
     label: "SaaS",
     description: "Product sites with features and pricing",
     icon: "layers",
-    available: false,
+    available: true,
   },
 ];
 

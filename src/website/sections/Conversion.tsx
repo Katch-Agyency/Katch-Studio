@@ -6,7 +6,7 @@ import type {
   NewsletterContent,
   WhatsappCtaContent,
 } from "@/types";
-import { SectionHeading, SectionShell, useWebsiteTheme } from "@/website/renderer";
+import { CTALink, SectionHeading, SectionShell, useSectionStyle, useWebsiteTheme } from "@/website/renderer";
 import { WhatsAppGlyph } from "./Restaurant";
 
 /* ============================================================
@@ -15,6 +15,32 @@ import { WhatsAppGlyph } from "./Restaurant";
 
 export function CtaSection({ content }: { content: CtaContent }) {
   const { radius, theme } = useWebsiteTheme();
+  const { variant } = useSectionStyle();
+
+  /* Simple variant — quiet, no accent band */
+  if (variant === "simple") {
+    return (
+      <SectionShell id="cta">
+        <div className="mx-auto max-w-2xl py-6 text-center">
+          <h2 className="text-3xl font-bold md:text-4xl" style={{ fontFamily: "var(--wp-font-heading)", color: "var(--wp-text)" }}>
+            {content.title}
+          </h2>
+          {content.text && (
+            <p className="mx-auto mt-3 max-w-xl text-[15.5px] leading-relaxed" style={{ color: "var(--wp-text-muted)" }}>
+              {content.text}
+            </p>
+          )}
+          {(content.primaryCTA?.label || content.secondaryCTA?.label) && (
+            <div className="mt-7 flex flex-wrap justify-center gap-3">
+              {content.primaryCTA?.label && <CTALink cta={content.primaryCTA} />}
+              {content.secondaryCTA?.label && <CTALink cta={content.secondaryCTA} />}
+            </div>
+          )}
+        </div>
+      </SectionShell>
+    );
+  }
+
   return (
     <SectionShell id="cta">
       <div

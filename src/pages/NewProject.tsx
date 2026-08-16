@@ -20,7 +20,6 @@ import { Button, Badge } from "@/components/ui/ui";
 import { Field, TextInput, TextArea, Select, Toggle } from "@/components/ui/Fields";
 import { Modal } from "@/components/ui/Modal";
 import { WEBSITE_CATEGORIES, TEMPLATE_FEATURES, getCategory } from "@/data/features";
-import { TEMPLATES, getTemplate } from "@/data/templates";
 import { THEME_PRESETS, getThemePreset } from "@/data/palette";
 import { SECTION_DEFINITIONS, SECTION_TYPES } from "@/features/sections/registry";
 import { SECTION_GROUPS } from "@/types";
@@ -56,12 +55,12 @@ const STEPS = ["Project Info", "Template", "Brand & Theme", "Sections & Features
 export default function NewProject() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { createProject } = useStore();
+  const { createProject, allTemplates } = useStore();
   const { toast } = useToast();
 
   /* Deep link from the Templates page: ?template=<id> */
   const deepTemplateId = searchParams.get("template");
-  const deepTemplate = deepTemplateId ? getTemplate(deepTemplateId) : undefined;
+  const deepTemplate = deepTemplateId ? allTemplates.find((t) => t.id === deepTemplateId) : undefined;
 
   const [step, setStep] = useState(deepTemplate ? 2 : 0);
   const [previewTpl, setPreviewTpl] = useState<WebsiteTemplate | null>(null);
@@ -71,8 +70,8 @@ export default function NewProject() {
     const defaultCategory = deepTemplate?.category ?? "restaurant";
     const startTpl =
       deepTemplate ??
-      TEMPLATES.filter((t) => t.category === defaultCategory).find((t) => t.featured) ??
-      TEMPLATES.find((t) => t.category === defaultCategory) ??
+      allTemplates.filter((t) => t.category === defaultCategory).find((t) => t.featured) ??
+      allTemplates.find((t) => t.category === defaultCategory) ??
       null;
     return {
       name: "",
@@ -107,12 +106,12 @@ export default function NewProject() {
   }, [deepTemplate?.id]);
 
   const category = getCategory(draft.category)!;
-  const templates = useMemo(() => TEMPLATES.filter((t) => t.category === draft.category), [draft.category]);
-  const template = draft.templateId ? getTemplate(draft.templateId) : undefined;
+  const templates = useMemo(() => allTemplates.filter((t) => t.category === draft.category), [draft.category, allTemplates]);
+  const template = draft.templateId ? allTemplates.find((t) => t.id === draft.templateId) : undefined;
 
   /* When category changes, pick the first (featured) template */
   const pickCategory = (id: string) => {
-    const list = TEMPLATES.filter((t) => t.category === id);
+    const list = allTemplates.filter((t) => t.category === id);
     const tpl = list.find((t) => t.featured) ?? list[0];
     set("category", id);
     set("templateId", tpl?.id ?? null);
@@ -156,9 +155,16 @@ export default function NewProject() {
       setStep(0);
       return;
     }
+    const tpl = allTemplates.find((t) => t.id === draft.templateId);
+    if (!tpl) {
+      toast("error", "This template no longer exists — please pick another one.");
+      setStep(1);
+      return;
+    }
     const preset = getThemePreset(draft.themePresetId);
     const project = createProject({
       templateId: draft.templateId,
+      template: tpl,
       name: draft.name.trim(),
       client: draft.client.trim(),
       category: draft.category,

@@ -1,23 +1,32 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Layers, Lock, Sparkles } from "lucide-react";
+import { Copy, Layers, Lock, Sparkles } from "lucide-react";
 import { Button, Badge } from "@/components/ui/ui";
-import { TEMPLATES } from "@/data/templates";
+import { useStore } from "@/app/store";
+import { useToast } from "@/app/toast";
 import { WEBSITE_CATEGORIES } from "@/data/features";
 import { SECTION_DEFINITIONS } from "@/features/sections/registry";
 import { cn } from "@/utils/helpers";
 
 /* ============================================================
-   Template library — browse reusable starting points.
-   Templates are immutable compositions; projects clone them.
+   Template library — built-in + user-duplicated templates.
+   Duplicating a template lets the internal design system evolve
+   without touching the original.
    ============================================================ */
 
 export default function Templates() {
+  const { allTemplates, duplicateTemplate } = useStore();
+  const { toast } = useToast();
   const [category, setCategory] = useState<string>("all");
 
+  const onDuplicate = (id: string) => {
+    const copy = duplicateTemplate(id);
+    if (copy) toast("success", `Template duplicated as \u201c${copy.name}\u201d.`);
+  };
+
   const list = useMemo(
-    () => (category === "all" ? TEMPLATES : TEMPLATES.filter((t) => t.category === category)),
-    [category]
+    () => (category === "all" ? allTemplates : allTemplates.filter((t) => t.category === category)),
+    [category, allTemplates]
   );
 
   return (
@@ -37,16 +46,16 @@ export default function Templates() {
           className={cn("seg-item", category === "all" && "seg-item-active")}
           aria-pressed={category === "all"}
         >
-          All ({TEMPLATES.length})
+          All ({allTemplates.length})
         </button>
-        {WEBSITE_CATEGORIES.filter((c) => TEMPLATES.some((t) => t.category === c.id)).map((c) => (
+        {WEBSITE_CATEGORIES.filter((c) => allTemplates.some((t) => t.category === c.id)).map((c) => (
           <button
             key={c.id}
             onClick={() => setCategory(c.id)}
             className={cn("seg-item", category === c.id && "seg-item-active")}
             aria-pressed={category === c.id}
           >
-            {c.label} ({TEMPLATES.filter((t) => t.category === c.id).length})
+            {c.label} ({allTemplates.filter((t) => t.category === c.id).length})
           </button>
         ))}
       </div>
@@ -76,6 +85,7 @@ export default function Templates() {
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="text-[15px] font-semibold text-ink">{tpl.name}</h3>
                   {tpl.featured && <Badge tone="brand">Featured</Badge>}
+                  {tpl.id.startsWith("tpl-custom-") && <Badge tone="accent">Custom</Badge>}
                 </div>
                 <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-ink-muted">{tpl.description}</p>
 
@@ -107,11 +117,11 @@ export default function Templates() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    disabled
-                    title="Template editing ships in the next phase — clone into a project for now"
+                    onClick={() => onDuplicate(tpl.id)}
+                    title="Duplicate this template"
                     className="shrink-0"
                   >
-                    <Lock className="h-3.5 w-3.5" />
+                    <Copy className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </div>
