@@ -149,5 +149,31 @@ assert(st2.variant === "editorial" && st2.styles.spacing === "xl", "variant + st
 const allVariants = SECTION_TYPES.filter((t) => SECTION_DEFINITIONS[t].variants?.length);
 assert(allVariants.length >= 10, `variants defined for 10+ section types (${allVariants.length})`);
 
+console.log("\n12) ZIP export package");
+{
+  const { buildProjectZip, buildResolvedStructure, projectZipFilename } = await import("@/lib/exportZip");
+  const structure = buildResolvedStructure(looky) as { project?: { name?: string }; pages?: unknown[] };
+  assert(structure.project?.name === "Looky Cakes", "resolved structure carries the project name");
+  assert(Array.isArray(structure.pages) && structure.pages.length === 4, "resolved structure lists all pages");
+
+  const blob = await buildProjectZip(looky);
+  assert(blob.size > 500, `zip blob has content (${blob.size} bytes)`);
+  assert(projectZipFilename(looky) === "katch-website-looky-cakes.zip", "zip filename slugified");
+
+  /* Re-open the zip and check its entries */
+  const JSZip = (await import("jszip")).default;
+  const bytes = (blob as unknown as { arrayBuffer?: () => Promise<ArrayBuffer> }).arrayBuffer
+    ? await (blob as unknown as { arrayBuffer: () => Promise<ArrayBuffer> }).arrayBuffer()
+    : Buffer.from(await (blob as unknown as { text: () => Promise<string> }).text());
+  const zip = await JSZip.loadAsync(bytes);
+  const entries = Object.keys(zip.files);
+  assert(entries.includes("project.json") && entries.includes("website.json") && entries.includes("README.md"),
+    `zip contains project.json + website.json + README.md (${entries.join(", ")})`);
+  const projectJson = JSON.parse(await zip.file("project.json")!.async("string"));
+  assert(projectJson.config?.projectInfo?.name === "Looky Cakes", "zipped project.json round-trips");
+  const readme = await zip.file("README.md")!.async("string");
+  assert(readme.includes("Looky Cakes"), "zipped README mentions the project");
+}
+
 console.log(`\n${failures === 0 ? "ALL CHECKS PASSED" : failures + " CHECKS FAILED"}`);
 process.exit(failures === 0 ? 0 : 1);

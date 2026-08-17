@@ -42,6 +42,19 @@ async function resolveAdapter(): Promise<StudioStorageAdapter> {
       return createLocalStorageAdapter();
     }
   }
+
+  /* Never stay silent about WHY local mode is active. */
+  if (import.meta.env.PROD) {
+    console.info(
+      "[Katch Studio] Local storage mode: the VITE_FIREBASE_* variables were not present when this " +
+        "bundle was BUILT (they are compiled in at build time). Add them in the hosting environment " +
+        "(Vercel → Settings → Environment Variables) and redeploy."
+    );
+  } else {
+    console.info(
+      "[Katch Studio] Local storage mode (dev). Create a .env file with VITE_FIREBASE_* variables to sync to Firestore."
+    );
+  }
   return createLocalStorageAdapter();
 }
 
