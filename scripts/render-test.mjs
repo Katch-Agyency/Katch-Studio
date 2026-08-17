@@ -232,6 +232,34 @@ await waitFor(() => text().includes("Restore demo data"));
 ok(text().includes("Workspace") && text().includes("Restore demo data"), "settings");
 ok(text().includes("Storage & Sync") && text().includes("Local browser storage"), "storage status shows local adapter when no Firebase env");
 
+<<<<<<< HEAD
+=======
+console.log("\n6b) Export modal — client branch configuration");
+nav(`/editor/${lookyId}`);
+await waitFor(() => text().includes("Signature Cakes"));
+const exportBtn = [...document.querySelectorAll("button")].find((b) => b.textContent.includes("Export"));
+exportBtn?.click();
+await waitFor(() => text().includes("Client branch configuration"));
+ok(text().includes("Download project.json") && text().includes("Copy JSON"), "branch JSON download and copy actions");
+ok(text().includes("public/project.json") && text().includes('"katch_visibility": false'), "client branch setup instructions");
+ok(text().includes("Share current Studio preview"), "share-for-review row");
+const closeBtn = [...document.querySelectorAll("button")].find((b) => b.getAttribute("aria-label") === "Close dialog");
+closeBtn?.click();
+await new Promise((r) => setTimeout(r, 300));
+/* Save-as-template in the editor menu */
+const moreBtn = [...document.querySelectorAll("button")].find((b) => b.getAttribute("aria-label") === "More actions");
+moreBtn?.click();
+await waitFor(() => text().includes("Save as template"));
+ok(text().includes("Save as template"), "editor menu has Save as template");
+const menuSave = [...document.querySelectorAll("button")].find((b) => b.textContent.includes("Save as template"));
+menuSave?.click();
+await waitFor(() => text().includes("Saved as template"));
+ok(text().includes("Saved as template"), "save-as-template toast confirms");
+/* the template landed in the store */
+const customTpls = JSON.parse(localStorage.getItem("katch-studio:customTemplates:v1") ?? "[]");
+ok(customTpls.some((t) => t.name.includes("Looky Cakes")), "custom template persisted");
+
+>>>>>>> e6cb2fb (all changes)
 console.log("\n7) Full-screen preview");
 nav(`/preview/${lookyId}`);
 await waitFor(() => text().includes("Cakes that make moments"));

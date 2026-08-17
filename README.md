@@ -79,6 +79,15 @@ configuration + resolved-structure export, RTL/Arabic websites, demo data,
 React/Vite output), Firebase Auth with real accounts & team roles, Firebase Storage for assets,
 deployment pipeline, client portal, AI suggestions, template editing, Sentry monitoring.
 
+## Studio mode and client branches
+
+The committed root file [`katch.config.json`](katch.config.json) selects the application mode:
+
+- `"katch_visibility": true` — full Katch Studio (the default on `main`).
+- `"katch_visibility": false` — load `public/project.json` and render only the client website.
+
+The editor's **Export → Client Branch** action downloads or copies the current full project as `project.json`. See [`docs/CLIENT_BRANCHES.md`](docs/CLIENT_BRANCHES.md) for the branch workflow, routing and asset rules.
+
 ## Running it
 
 ```bash

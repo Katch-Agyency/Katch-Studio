@@ -18,8 +18,14 @@
     "test:data": "esbuild src/scripts/smoke.ts --bundle --platform=node --format=esm --alias:@=./src --loader:.jpg=dataurl --outfile=/tmp/katch-smoke.mjs && node /tmp/katch-smoke.mjs",
     "pretest:render": "npm run export:sources",
     "test:render": "node scripts/render-test.mjs",
+<<<<<<< HEAD
     "pretest:export": "npm run export:sources",
     "test:export": "node scripts/export-test.mjs"
+=======
+    "test:server": "node scripts/server-test.mjs",
+    "test:scaffold": "node scripts/scaffold-verify.mjs",
+    "test:client": "node scripts/client-mode-verify.mjs"
+>>>>>>> e6cb2fb (all changes)
   },
   "dependencies": {
     "firebase": "^12.17.1",
