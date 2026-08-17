@@ -1,174 +1,101 @@
 {
-  "createdAt": "2026-08-17T14:29:56.721Z",
-  "id": "yr8x0gu91l",
-  "createdFrom": "tpl-rest-elegant",
-  "status": "draft",
-  "updatedAt": "2026-08-17T14:29:56.721Z",
+  "createdAt": "2026-08-17T09:11:49.233Z",
   "config": {
-    "projectInfo": {
-      "description": "..",
-      "category": "restaurant",
-      "audience": "all",
-      "language": "en",
-      "name": "test_project",
-      "client": "Test"
-    },
-    "pages": [
-      {
-        "sections": [
-          "yr8w01ybh8",
-          "yr8x02cu9t",
-          "yr8x03rmsz",
-          "yr8x04gyk0",
-          "yr8x05qejn",
-          "yr8x06e0qa",
-          "yr8x07f8cp",
-          "yr8x08xyel",
-          "yr8x09fr92",
-          "yr8x0acoem",
-          "yr8x0bgtxy"
-        ],
-        "path": "/",
-        "name": "Home",
-        "id": "yr8x0ctxin",
-        "seo": {
-          "title": "",
-          "ogImage": "",
-          "description": "",
-          "keywords": "",
-          "index": true
-        }
-      },
-      {
-        "path": "/menu",
-        "seo": {
-          "ogImage": "",
-          "title": "",
-          "description": "",
-          "index": true,
-          "keywords": ""
-        },
-        "id": "yr8x0d4rm0",
-        "sections": [
-          "yr8w01ybh8",
-          "yr8x04gyk0",
-          "yr8x0acoem",
-          "yr8x0bgtxy"
-        ],
-        "name": "Menu"
-      },
-      {
-        "name": "Gallery",
-        "id": "yr8x0erswu",
-        "seo": {
-          "ogImage": "",
-          "title": "",
-          "description": "",
-          "keywords": "",
-          "index": true
-        },
-        "sections": [
-          "yr8w01ybh8",
-          "yr8x06e0qa",
-          "yr8x0bgtxy"
-        ],
-        "path": "/gallery"
-      },
-      {
-        "seo": {
-          "description": "",
-          "keywords": "",
-          "ogImage": "",
-          "index": true,
-          "title": ""
-        },
-        "name": "Contact",
-        "sections": [
-          "yr8w01ybh8",
-          "yr8x09fr92",
-          "yr8x0bgtxy"
-        ],
-        "path": "/contact",
-        "id": "yr8x0ffc46"
-      }
-    ],
     "brand": {
-      "email": "",
-      "businessName": "Test",
-      "description": "",
-      "logoUrl": "",
-      "logoText": "Test",
-      "address": "",
-      "tagline": "",
-      "faviconColor": "#84cc16",
-      "phone": "",
-      "logoFormat": "wordmark",
       "whatsapp": "",
+      "logoFormat": "wordmark",
+      "logoText": "Yusuf LMS",
+      "tagline": "",
+      "email": "",
       "social": [
         {
           "url": "",
           "label": "Instagram"
         },
         {
-          "label": "Facebook",
-          "url": ""
+          "url": "",
+          "label": "Facebook"
         }
-      ]
+      ],
+      "address": "",
+      "businessName": "Yusuf LMS",
+      "faviconColor": "#84cc16",
+      "description": "",
+      "phone": "",
+      "logoUrl": ""
     },
-    "features": [
+    "templateId": "tpl-saas-ai",
+    "pages": [
       {
-        "id": "whatsapp",
-        "enabled": true
+        "seo": {
+          "index": true,
+          "ogImage": "",
+          "title": "",
+          "description": "",
+          "keywords": ""
+        },
+        "id": "ln8w0etdm3",
+        "sections": [
+          "ln8w02rvnt",
+          "ln8w03s14r",
+          "ln8w04mjj7",
+          "ln8w05zcbe",
+          "ln8w06ya37",
+          "ln8w073m7t",
+          "ln8w08px06",
+          "ln8w09xtc8",
+          "ln8w0ae93h",
+          "ln8w0beu63",
+          "ln8w0cjbzz",
+          "ln8w0d1pmw"
+        ],
+        "path": "/",
+        "name": "Home"
       },
       {
-        "id": "contactForm",
-        "enabled": false
+        "sections": [
+          "ln8w02rvnt",
+          "ln8w09xtc8",
+          "ln8w0beu63",
+          "ln8w0d1pmw"
+        ],
+        "id": "ln8x0f5xhx",
+        "path": "/pricing",
+        "name": "Pricing",
+        "seo": {
+          "keywords": "",
+          "ogImage": "",
+          "description": "",
+          "title": "",
+          "index": true
+        }
       },
       {
-        "id": "maps",
-        "enabled": true
-      },
-      {
-        "enabled": true,
-        "id": "booking"
-      },
-      {
-        "enabled": false,
-        "id": "ordering"
-      },
-      {
-        "enabled": true,
-        "id": "instagram"
-      },
-      {
-        "enabled": true,
-        "id": "analytics"
-      },
-      {
-        "id": "seo",
-        "enabled": true
-      },
-      {
-        "enabled": false,
-        "id": "newsletter"
-      },
-      {
-        "id": "testimonials",
-        "enabled": true
-      },
-      {
-        "id": "gallery",
-        "enabled": true
+        "sections": [
+          "ln8w02rvnt",
+          "ln8w05zcbe",
+          "ln8w0d1pmw"
+        ],
+        "seo": {
+          "keywords": "",
+          "description": "",
+          "ogImage": "",
+          "index": true,
+          "title": ""
+        },
+        "path": "/security",
+        "name": "Security",
+        "id": "ln8x0g6bro"
       }
     ],
     "sections": [
       {
         "type": "navbar",
-        "id": "yr8w01ybh8",
+        "id": "ln8w02rvnt",
         "content": {
           "cta": {
-            "variant": "primary",
             "label": "Contact Us",
+            "variant": "primary",
             "href": "#contact"
           },
           "nav": [
@@ -177,296 +104,412 @@
               "href": "#home"
             },
             {
-              "href": "#about",
-              "label": "About"
+              "label": "About",
+              "href": "#about"
             },
             {
               "href": "#services",
               "label": "Services"
             },
             {
-              "href": "#contact",
-              "label": "Contact"
+              "label": "Contact",
+              "href": "#contact"
             }
           ]
         },
         "hidden": false
       },
       {
+        "variant": "split",
+        "id": "ln8w03s14r",
         "type": "hero",
-        "id": "yr8x02cu9t",
+        "hidden": false,
         "content": {
-          "subtitle": "",
-          "primaryCTA": {
-            "variant": "primary",
-            "href": "#contact",
-            "label": "Get Started"
-          },
-          "imageAlt": "",
-          "title": "Welcome to Test",
           "secondaryCTA": {
             "variant": "secondary",
             "href": "#about",
-            "label": "Learn More"
+            "label": "Watch the Demo"
           },
+          "description": "Nexus connects your docs, tickets and meetings into one AI workspace that drafts, summarizes and answers with your company's actual knowledge.",
+          "image": "/assets/landing-dashboard-DYxYC32P.jpg",
+          "primaryCTA": {
+            "label": "Start Free",
+            "variant": "primary",
+            "href": "#pricing"
+          },
+          "title": "Your team's second brain, with context",
           "alignment": "left",
-          "image": "",
-          "description": "We craft exceptional experiences, thoughtfully designed and built to perform."
-        },
-        "hidden": false
+          "subtitle": "Nexus AI · Now in public beta",
+          "imageAlt": "Nexus AI workspace"
+        }
       },
       {
-        "type": "about",
+        "type": "clients",
+        "id": "ln8w04mjj7",
+        "hidden": false,
         "content": {
-          "points": [
-            "Experienced team",
-            "Quality you can trust",
-            "Customer-first approach"
+          "logos": [
+            "Northwind",
+            "Acme Corp",
+            "Helios",
+            "DataWise",
+            "CloudPeak"
           ],
-          "image": "",
-          "subtitle": "Our story",
-          "text": "We are a passionate team dedicated to quality, creativity and service. Every project is an opportunity to do something remarkable.",
-          "title": "About Test",
-          "imageAlt": ""
-        },
-        "hidden": false,
-        "id": "yr8x03rmsz"
+          "subtitle": "From seed to scale",
+          "title": "Trusted by modern teams"
+        }
       },
       {
         "hidden": false,
-        "id": "yr8x04gyk0",
+        "type": "features",
         "content": {
-          "subtitle": "Made fresh every day",
-          "title": "Our Menu",
-          "categories": [
+          "subtitle": "Features",
+          "title": "Everything you need",
+          "items": [
             {
-              "name": "Starters",
-              "items": [
-                {
-                  "name": "Signature Starter",
-                  "description": "Fresh ingredients, house recipe.",
-                  "price": "60 EGP"
-                },
-                {
-                  "price": "45 EGP",
-                  "name": "Soup of the Day",
-                  "description": "Made fresh each morning."
-                }
-              ]
+              "title": "Context-aware drafts",
+              "icon": "sparkles",
+              "text": "Proposals, summaries and updates grounded in your real data."
             },
             {
-              "name": "Mains",
-              "items": [
-                {
-                  "price": "180 EGP",
-                  "description": "The dish everyone comes back for.",
-                  "name": "Chef's Special"
-                },
-                {
-                  "name": "Grilled Selection",
-                  "description": "Char-grilled to perfection.",
-                  "price": "220 EGP"
-                }
-              ]
+              "title": "Instant answers",
+              "icon": "zap",
+              "text": "Ask anything across every connected source."
             },
             {
-              "name": "Desserts",
-              "items": [
-                {
-                  "price": "75 EGP",
-                  "name": "House Dessert",
-                  "description": "The perfect ending to your meal."
-                },
-                {
-                  "description": "Fresh and light.",
-                  "price": "55 EGP",
-                  "name": "Seasonal Fruit"
-                }
-              ]
+              "text": "SOC 2 Type II, encryption at rest and in transit.",
+              "icon": "shield-check",
+              "title": "Enterprise security"
             }
           ]
         },
-        "type": "menu"
+        "id": "ln8w05zcbe"
       },
       {
-        "id": "yr8x05qejn",
-        "type": "stats",
-        "hidden": false,
         "content": {
-          "items": [
+          "image": "/assets/landing-dashboard-DYxYC32P.jpg",
+          "text": "Ask Nexus a question in plain language and watch it pull the answer — with citations — from the exact document, ticket or meeting where it lives.",
+          "imageAlt": "Nexus demo",
+          "subtitle": "Product demo",
+          "points": [
+            "Answers with citations",
+            "Connects in minutes",
+            "Works where you already are"
+          ],
+          "title": "See it in action"
+        },
+        "hidden": false,
+        "type": "about",
+        "id": "ln8w06ya37"
+      },
+      {
+        "hidden": false,
+        "id": "ln8w073m7t",
+        "type": "process",
+        "content": {
+          "title": "How it works",
+          "subtitle": "Up and running today",
+          "steps": [
             {
-              "label": "Years of experience",
-              "value": "10+"
+              "title": "Connect",
+              "text": "Link your docs, tickets and calendar with one click."
             },
             {
-              "label": "Happy clients",
-              "value": "250+"
+              "text": "Nexus builds a secure knowledge graph of your company.",
+              "title": "Index"
             },
             {
-              "label": "Client satisfaction",
-              "value": "98%"
+              "text": "Your team asks questions and gets cited answers.",
+              "title": "Ask"
+            },
+            {
+              "text": "Drafts and digests arrive before you ask for them.",
+              "title": "Automate"
             }
           ]
         }
       },
       {
+        "id": "ln8w08px06",
         "content": {
-          "images": [
+          "subtitle": "Features",
+          "items": [
             {
-              "src": "",
-              "alt": "Photo 1"
+              "title": "Context-aware drafts",
+              "icon": "sparkles",
+              "text": "Proposals, summaries and updates grounded in your real data."
             },
             {
-              "src": "",
-              "alt": "Photo 2"
+              "title": "Instant answers",
+              "text": "Ask anything across every connected source.",
+              "icon": "zap"
             },
             {
-              "src": "",
-              "alt": "Photo 3"
+              "icon": "shield-check",
+              "title": "Enterprise security",
+              "text": "SOC 2 Type II, encryption at rest and in transit."
             }
           ],
-          "title": "Gallery",
-          "subtitle": "A look inside"
+          "title": "Everything you need"
         },
-        "type": "gallery",
-        "id": "yr8x06e0qa",
+        "type": "features",
         "hidden": false
       },
       {
+        "type": "pricing",
+        "hidden": false,
         "content": {
-          "title": "What Clients Say",
-          "subtitle": "Testimonials",
+          "title": "Simple pricing",
+          "tiers": [
+            {
+              "period": "/month",
+              "cta": {
+                "label": "Start Free",
+                "variant": "secondary",
+                "href": "#"
+              },
+              "features": [
+                "3 connected sources",
+                "50 AI answers / day",
+                "Community support"
+              ],
+              "price": "$0",
+              "description": "For individuals exploring.",
+              "highlighted": false,
+              "name": "Free"
+            },
+            {
+              "price": "$24",
+              "description": "For teams shipping every day.",
+              "period": "/user/month",
+              "highlighted": true,
+              "name": "Team",
+              "cta": {
+                "label": "Start 14-day Trial",
+                "href": "#",
+                "variant": "primary"
+              },
+              "features": [
+                "Unlimited sources",
+                "Unlimited AI answers",
+                "Shared workspaces",
+                "Priority support"
+              ]
+            },
+            {
+              "highlighted": false,
+              "price": "Custom",
+              "period": "",
+              "cta": {
+                "href": "#",
+                "variant": "secondary",
+                "label": "Contact Sales"
+              },
+              "description": "For organizations at scale.",
+              "name": "Enterprise",
+              "features": [
+                "SSO & SCIM",
+                "Private deployments",
+                "Custom AI models",
+                "Dedicated manager"
+              ]
+            }
+          ],
+          "subtitle": "Start free, scale when ready"
+        },
+        "id": "ln8w09xtc8"
+      },
+      {
+        "content": {
           "items": [
             {
-              "role": "Customer",
-              "rating": 5,
-              "quote": "A wonderful experience from start to finish. Highly recommended.",
-              "name": "Client Name"
-            },
-            {
-              "role": "Customer",
-              "rating": 5,
-              "name": "Client Name",
-              "quote": "Professional, fast and truly caring about the details."
-            },
-            {
-              "name": "Client Name",
-              "quote": "The results exceeded our expectations. We will be back.",
-              "role": "Customer",
+              "quote": "We cut meeting-prep time in half in the first month.",
+              "role": "Head of Ops, DataWise",
+              "name": "Sara T.",
               "rating": 5
+            },
+            {
+              "role": "CTO, Helios",
+              "rating": 5,
+              "quote": "The citations alone are worth it. No more hallucinated answers.",
+              "name": "Karim A."
+            },
+            {
+              "name": "Mona R.",
+              "rating": 5,
+              "quote": "Feels like hiring an analyst who never sleeps.",
+              "role": "PM, Acme Corp"
             }
-          ]
+          ],
+          "subtitle": "Testimonials",
+          "title": "Teams love it"
         },
-        "id": "yr8x07f8cp",
         "hidden": false,
+        "id": "ln8w0ae93h",
         "type": "testimonials"
       },
       {
         "hidden": false,
-        "id": "yr8x08xyel",
+        "id": "ln8w0beu63",
         "content": {
-          "title": "Reserve a Table",
-          "note": "Call us on +20 100 000 0000 or message us on WhatsApp to book your table.",
-          "subtitle": "We'd love to host you"
-        },
-        "type": "reservation"
-      },
-      {
-        "content": {
-          "title": "Find Us",
-          "mapQuery": "Cairo",
-          "subtitle": "Visit us today",
-          "hours": [
-            "Monday – Friday · 10:00 – 22:00",
-            "Saturday – Sunday · 12:00 – 23:00"
-          ]
-        },
-        "id": "yr8x09fr92",
-        "hidden": false,
-        "type": "location"
-      },
-      {
-        "type": "cta",
-        "id": "yr8x0acoem",
-        "hidden": false,
-        "content": {
-          "secondaryCTA": {
-            "variant": "secondary",
-            "href": "#projects",
-            "label": "See Our Work"
-          },
-          "title": "Ready to work with Test?",
-          "primaryCTA": {
-            "href": "#contact",
-            "label": "Contact Us",
-            "variant": "primary"
-          },
-          "text": "Let's talk about your next project — we're one message away."
-        }
-      },
-      {
-        "hidden": false,
-        "content": {
-          "text": "© 2026 Test. All rights reserved.",
-          "columns": [
+          "items": [
             {
-              "links": [
-                {
-                  "label": "Home",
-                  "href": "#home"
-                },
-                {
-                  "href": "#about",
-                  "label": "About"
-                },
-                {
-                  "label": "Contact",
-                  "href": "#contact"
-                }
-              ],
-              "title": "Explore"
+              "q": "Where is my data stored?",
+              "a": "In your region, encrypted at rest and in transit. We never train on your data."
             },
             {
-              "title": "Services",
+              "q": "Can I cancel anytime?",
+              "a": "Yes — monthly plans cancel with one click, no questions asked."
+            },
+            {
+              "q": "Do you offer discounts?",
+              "a": "Annual billing saves 20%. Nonprofits get 30% off."
+            }
+          ],
+          "title": "Questions, answered",
+          "subtitle": "FAQ"
+        },
+        "type": "faq"
+      },
+      {
+        "content": {
+          "title": "Ready to work with Yusuf LMS?",
+          "primaryCTA": {
+            "label": "Contact Us",
+            "variant": "primary",
+            "href": "#contact"
+          },
+          "text": "Let's talk about your next project — we're one message away.",
+          "secondaryCTA": {
+            "href": "#projects",
+            "variant": "secondary",
+            "label": "See Our Work"
+          }
+        },
+        "hidden": false,
+        "type": "cta",
+        "id": "ln8w0cjbzz"
+      },
+      {
+        "id": "ln8w0d1pmw",
+        "hidden": false,
+        "type": "footer",
+        "content": {
+          "text": "© 2026 Yusuf LMS. All rights reserved.",
+          "columns": [
+            {
+              "title": "Explore",
+              "links": [
+                {
+                  "href": "#home",
+                  "label": "Home"
+                },
+                {
+                  "label": "About",
+                  "href": "#about"
+                },
+                {
+                  "href": "#contact",
+                  "label": "Contact"
+                }
+              ]
+            },
+            {
               "links": [
                 {
                   "label": "Our Services",
                   "href": "#services"
                 },
                 {
-                  "href": "#pricing",
-                  "label": "Pricing"
+                  "label": "Pricing",
+                  "href": "#pricing"
                 }
-              ]
+              ],
+              "title": "Services"
             }
           ]
-        },
-        "type": "footer",
-        "id": "yr8x0bgtxy"
+        }
       }
     ],
-    "templateId": "tpl-rest-elegant",
+    "features": [
+      {
+        "enabled": false,
+        "id": "whatsapp"
+      },
+      {
+        "enabled": true,
+        "id": "contactForm"
+      },
+      {
+        "enabled": true,
+        "id": "maps"
+      },
+      {
+        "enabled": false,
+        "id": "booking"
+      },
+      {
+        "id": "ordering",
+        "enabled": false
+      },
+      {
+        "id": "instagram",
+        "enabled": false
+      },
+      {
+        "enabled": true,
+        "id": "analytics"
+      },
+      {
+        "enabled": true,
+        "id": "seo"
+      },
+      {
+        "enabled": true,
+        "id": "newsletter"
+      },
+      {
+        "enabled": true,
+        "id": "testimonials"
+      },
+      {
+        "enabled": false,
+        "id": "gallery"
+      }
+    ],
+    "projectInfo": {
+      "description": "",
+      "client": "Yusuf LMS",
+      "language": "en",
+      "name": "LMS Agency",
+      "audience": "",
+      "category": "saas"
+    },
     "theme": {
-      "mode": "light",
       "colors": {
-        "text": "#292524",
-        "secondary": "#292524",
+        "background": "#f8fafc",
+        "primary": "#1d4ed8",
+        "secondary": "#0f172a",
+        "accent": "#38bdf8",
+        "text": "#0f172a",
         "surface": "#ffffff",
-        "primary": "#a16207",
-        "textMuted": "#78716c",
-        "accent": "#d4a017",
-        "background": "#fbf7f0",
-        "primaryHover": "#854d0e"
+        "primaryHover": "#1e40af",
+        "textMuted": "#475569"
       },
-      "density": "comfortable",
-      "fonts": {
-        "heading": "inter-sora",
-        "arabic": "kufi",
-        "body": "inter-sora"
-      },
-      "radius": "lg",
+      "cardStyle": "outlined",
       "buttonStyle": "solid",
-      "cardStyle": "elevated"
+      "fonts": {
+        "arabic": "kufi",
+        "body": "inter-sora",
+        "heading": "inter-sora"
+      },
+      "density": "compact",
+      "mode": "light",
+      "radius": "sm"
     }
-  }
+  },
+  "createdFrom": "tpl-saas-ai",
+  "id": "ln8x0hkopf",
+  "updatedAt": "2026-08-17T09:12:07.291Z",
+  "status": "review"
 }
