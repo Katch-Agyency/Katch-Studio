@@ -1,119 +1,139 @@
 {
-  "createdAt": "2026-08-17T14:29:56.721Z",
-  "id": "yr8x0gu91l",
-  "createdFrom": "tpl-rest-elegant",
-  "status": "draft",
-  "updatedAt": "2026-08-17T14:29:56.721Z",
+  "updatedAt": "2026-08-17T12:18:00.600Z",
+  "id": "6djq0gsaml",
   "config": {
     "projectInfo": {
-      "description": "..",
+      "description": "",
+      "audience": "Pizza Lovers",
+      "name": "Pizza Restaurant",
       "category": "restaurant",
-      "audience": "all",
       "language": "en",
-      "name": "test_project",
-      "client": "Test"
+      "client": "Pizza Restaurant"
     },
+    "templateId": "tpl-rest-elegant",
     "pages": [
       {
-        "sections": [
-          "yr8w01ybh8",
-          "yr8x02cu9t",
-          "yr8x03rmsz",
-          "yr8x04gyk0",
-          "yr8x05qejn",
-          "yr8x06e0qa",
-          "yr8x07f8cp",
-          "yr8x08xyel",
-          "yr8x09fr92",
-          "yr8x0acoem",
-          "yr8x0bgtxy"
-        ],
-        "path": "/",
-        "name": "Home",
-        "id": "yr8x0ctxin",
         "seo": {
-          "title": "",
+          "keywords": "",
           "ogImage": "",
           "description": "",
-          "keywords": "",
+          "title": "",
           "index": true
-        }
+        },
+        "name": "Home",
+        "path": "/",
+        "sections": [
+          "6djp01n8br",
+          "6djp027p9h",
+          "6djp03ryix",
+          "6djp04984r",
+          "6djp05jmox",
+          "6djp06ro3y",
+          "6djp07vzea",
+          "6djp082tax",
+          "6djp097g5u",
+          "6djp0awwab",
+          "6djp0bm51x"
+        ],
+        "id": "6djq0crrzs"
       },
       {
         "path": "/menu",
         "seo": {
-          "ogImage": "",
+          "keywords": "",
           "title": "",
           "description": "",
           "index": true,
-          "keywords": ""
+          "ogImage": ""
         },
-        "id": "yr8x0d4rm0",
+        "id": "6djq0d99i2",
         "sections": [
-          "yr8w01ybh8",
-          "yr8x04gyk0",
-          "yr8x0acoem",
-          "yr8x0bgtxy"
+          "6djp01n8br",
+          "6djp04984r",
+          "6djp0awwab",
+          "6djp0bm51x"
         ],
         "name": "Menu"
       },
       {
-        "name": "Gallery",
-        "id": "yr8x0erswu",
+        "path": "/gallery",
         "seo": {
-          "ogImage": "",
-          "title": "",
           "description": "",
           "keywords": "",
+          "ogImage": "",
+          "title": "",
           "index": true
         },
+        "id": "6djq0eeba7",
         "sections": [
-          "yr8w01ybh8",
-          "yr8x06e0qa",
-          "yr8x0bgtxy"
+          "6djp01n8br",
+          "6djp06ro3y",
+          "6djp0bm51x"
         ],
-        "path": "/gallery"
+        "name": "Gallery"
       },
       {
         "seo": {
-          "description": "",
+          "title": "",
           "keywords": "",
-          "ogImage": "",
           "index": true,
-          "title": ""
+          "description": "",
+          "ogImage": ""
         },
-        "name": "Contact",
+        "id": "6djq0f4zbt",
         "sections": [
-          "yr8w01ybh8",
-          "yr8x09fr92",
-          "yr8x0bgtxy"
+          "6djp01n8br",
+          "6djp097g5u",
+          "6djp0bm51x"
         ],
-        "path": "/contact",
-        "id": "yr8x0ffc46"
+        "name": "Contact",
+        "path": "/contact"
       }
     ],
+    "theme": {
+      "buttonStyle": "solid",
+      "colors": {
+        "surface": "#ffffff",
+        "secondary": "#292524",
+        "text": "#292524",
+        "background": "#fbf7f0",
+        "primary": "#a16207",
+        "textMuted": "#78716c",
+        "primaryHover": "#854d0e",
+        "accent": "#d4a017"
+      },
+      "mode": "light",
+      "density": "comfortable",
+      "cardStyle": "elevated",
+      "radius": "lg",
+      "fonts": {
+        "heading": "inter-sora",
+        "body": "inter-sora",
+        "arabic": "kufi"
+      }
+    },
     "brand": {
-      "email": "",
-      "businessName": "Test",
-      "description": "",
-      "logoUrl": "",
-      "logoText": "Test",
-      "address": "",
-      "tagline": "",
+      "logoText": "Pizza Restaurant",
       "faviconColor": "#84cc16",
-      "phone": "",
-      "logoFormat": "wordmark",
+      "address": "",
       "whatsapp": "",
+      "phone": "",
+      "tagline": "",
+      "description": "",
+      "email": "",
+      "businessName": "Pizza Restaurant",
       "social": [
         {
-          "url": "",
-          "label": "Instagram"
+          "label": "Instagram",
+          "url": ""
         },
         {
           "label": "Facebook",
           "url": ""
         }
-      ]
+      ],
+      "logoUrl": "",
+      "logoFormat": "wordmark"
     },
     "features": [
       {
@@ -137,12 +157,12 @@
         "id": "ordering"
       },
       {
-        "enabled": true,
-        "id": "instagram"
+        "id": "instagram",
+        "enabled": true
       },
       {
-        "enabled": true,
-        "id": "analytics"
+        "id": "analytics",
+        "enabled": true
       },
       {
         "id": "seo",
@@ -153,8 +173,8 @@
         "id": "newsletter"
       },
       {
-        "id": "testimonials",
-        "enabled": true
+        "enabled": true,
+        "id": "testimonials"
       },
       {
         "id": "gallery",
@@ -163,13 +183,23 @@
     ],
     "sections": [
       {
+        "styles": {
+          "align": "left",
+          "background": "dark",
+          "spacing": "sm",
+          "visibility": {
+            "tablet": true,
+            "mobile": true,
+            "desktop": true
+          }
+        },
+        "hidden": false,
         "type": "navbar",
-        "id": "yr8w01ybh8",
         "content": {
           "cta": {
-            "variant": "primary",
+            "href": "#contact",
             "label": "Contact Us",
-            "href": "#contact"
+            "variant": "primary"
           },
           "nav": [
             {
@@ -177,8 +207,8 @@
               "href": "#home"
             },
             {
-              "href": "#about",
-              "label": "About"
+              "label": "About",
+              "href": "#about"
             },
             {
               "href": "#services",
@@ -190,84 +220,84 @@
             }
           ]
         },
-        "hidden": false
+        "id": "6djp01n8br"
       },
       {
-        "type": "hero",
-        "id": "yr8x02cu9t",
         "content": {
-          "subtitle": "",
-          "primaryCTA": {
-            "variant": "primary",
-            "href": "#contact",
-            "label": "Get Started"
-          },
+          "description": "We craft exceptional experiences, thoughtfully designed and built to perform.",
           "imageAlt": "",
-          "title": "Welcome to Test",
-          "secondaryCTA": {
-            "variant": "secondary",
-            "href": "#about",
-            "label": "Learn More"
+          "primaryCTA": {
+            "label": "Get Started",
+            "variant": "primary",
+            "href": "#contact"
           },
           "alignment": "left",
+          "secondaryCTA": {
+            "label": "Learn More",
+            "variant": "secondary",
+            "href": "#about"
+          },
+          "title": "Welcome to Pizza Restaurant",
           "image": "",
-          "description": "We craft exceptional experiences, thoughtfully designed and built to perform."
+          "subtitle": ""
         },
-        "hidden": false
+        "hidden": false,
+        "id": "6djp027p9h",
+        "type": "hero"
       },
       {
         "type": "about",
+        "id": "6djp03ryix",
+        "hidden": false,
         "content": {
+          "image": "",
           "points": [
             "Experienced team",
             "Quality you can trust",
             "Customer-first approach"
           ],
-          "image": "",
-          "subtitle": "Our story",
+          "imageAlt": "",
           "text": "We are a passionate team dedicated to quality, creativity and service. Every project is an opportunity to do something remarkable.",
-          "title": "About Test",
-          "imageAlt": ""
-        },
-        "hidden": false,
-        "id": "yr8x03rmsz"
+          "subtitle": "Our story",
+          "title": "About Pizza Restaurant"
+        }
       },
       {
+        "id": "6djp04984r",
         "hidden": false,
-        "id": "yr8x04gyk0",
         "content": {
-          "subtitle": "Made fresh every day",
           "title": "Our Menu",
+          "subtitle": "Made fresh every day",
           "categories": [
             {
-              "name": "Starters",
               "items": [
                 {
-                  "name": "Signature Starter",
                   "description": "Fresh ingredients, house recipe.",
+                  "name": "Signature Starter",
                   "price": "60 EGP"
                 },
                 {
-                  "price": "45 EGP",
                   "name": "Soup of the Day",
+                  "price": "45 EGP",
                   "description": "Made fresh each morning."
                 }
-              ]
+              ],
+              "name": "Starters"
             },
             {
-              "name": "Mains",
               "items": [
                 {
-                  "price": "180 EGP",
                   "description": "The dish everyone comes back for.",
-                  "name": "Chef's Special"
+                  "name": "Chef's Special",
+                  "price": "180 EGP"
                 },
                 {
-                  "name": "Grilled Selection",
                   "description": "Char-grilled to perfection.",
-                  "price": "220 EGP"
+                  "price": "220 EGP",
+                  "name": "Grilled Selection"
                 }
-              ]
+              ],
+              "name": "Mains"
             },
             {
               "name": "Desserts",
@@ -278,9 +308,9 @@
                   "description": "The perfect ending to your meal."
                 },
                 {
-                  "description": "Fresh and light.",
                   "price": "55 EGP",
-                  "name": "Seasonal Fruit"
+                  "name": "Seasonal Fruit",
+                  "description": "Fresh and light."
                 }
               ]
             }
@@ -289,9 +319,6 @@
         "type": "menu"
       },
       {
-        "id": "yr8x05qejn",
-        "type": "stats",
-        "hidden": false,
         "content": {
           "items": [
             {
@@ -299,55 +326,60 @@
               "value": "10+"
             },
             {
-              "label": "Happy clients",
-              "value": "250+"
+              "value": "250+",
+              "label": "Happy clients"
             },
             {
-              "label": "Client satisfaction",
-              "value": "98%"
+              "value": "98%",
+              "label": "Client satisfaction"
             }
           ]
-        }
-      },
-      {
-        "content": {
-          "images": [
-            {
-              "src": "",
-              "alt": "Photo 1"
-            },
-            {
-              "src": "",
-              "alt": "Photo 2"
-            },
-            {
-              "src": "",
-              "alt": "Photo 3"
-            }
-          ],
-          "title": "Gallery",
-          "subtitle": "A look inside"
         },
-        "type": "gallery",
-        "id": "yr8x06e0qa",
+        "id": "6djp05jmox",
+        "type": "stats",
         "hidden": false
       },
       {
         "content": {
-          "title": "What Clients Say",
+          "subtitle": "A look inside",
+          "title": "Gallery",
+          "images": [
+            {
+              "alt": "Photo 1",
+              "src": ""
+            },
+            {
+              "alt": "Photo 2",
+              "src": ""
+            },
+            {
+              "alt": "Photo 3",
+              "src": ""
+            }
+          ]
+        },
+        "hidden": false,
+        "type": "gallery",
+        "id": "6djp06ro3y"
+      },
+      {
+        "hidden": false,
+        "id": "6djp07vzea",
+        "content": {
           "subtitle": "Testimonials",
+          "title": "What Clients Say",
           "items": [
             {
-              "role": "Customer",
-              "rating": 5,
               "quote": "A wonderful experience from start to finish. Highly recommended.",
-              "name": "Client Name"
+              "rating": 5,
+              "name": "Client Name",
+              "role": "Customer"
             },
             {
               "role": "Customer",
-              "rating": 5,
+              "quote": "Professional, fast and truly caring about the details.",
               "name": "Client Name",
-              "quote": "Professional, fast and truly caring about the details."
+              "rating": 5
             },
             {
               "name": "Client Name",
@@ -357,116 +389,94 @@
             }
           ]
         },
-        "id": "yr8x07f8cp",
-        "hidden": false,
         "type": "testimonials"
       },
       {
-        "hidden": false,
-        "id": "yr8x08xyel",
         "content": {
-          "title": "Reserve a Table",
+          "subtitle": "We'd love to host you",
           "note": "Call us on +20 100 000 0000 or message us on WhatsApp to book your table.",
-          "subtitle": "We'd love to host you"
+          "title": "Reserve a Table"
         },
-        "type": "reservation"
+        "id": "6djp082tax",
+        "type": "reservation",
+        "hidden": false
       },
       {
+        "hidden": false,
+        "type": "location",
+        "id": "6djp097g5u",
         "content": {
-          "title": "Find Us",
           "mapQuery": "Cairo",
           "subtitle": "Visit us today",
+          "title": "Find Us",
           "hours": [
             "Monday – Friday · 10:00 – 22:00",
             "Saturday – Sunday · 12:00 – 23:00"
           ]
-        },
-        "id": "yr8x09fr92",
-        "hidden": false,
-        "type": "location"
-      },
-      {
-        "type": "cta",
-        "id": "yr8x0acoem",
-        "hidden": false,
-        "content": {
-          "secondaryCTA": {
-            "variant": "secondary",
-            "href": "#projects",
-            "label": "See Our Work"
-          },
-          "title": "Ready to work with Test?",
-          "primaryCTA": {
-            "href": "#contact",
-            "label": "Contact Us",
-            "variant": "primary"
-          },
-          "text": "Let's talk about your next project — we're one message away."
         }
       },
       {
-        "hidden": false,
+        "type": "cta",
         "content": {
-          "text": "© 2026 Test. All rights reserved.",
+          "primaryCTA": {
+            "variant": "primary",
+            "href": "#contact",
+            "label": "Contact Us"
+          },
+          "title": "Ready to work with Pizza Restaurant?",
+          "secondaryCTA": {
+            "label": "See Our Work",
+            "href": "#projects",
+            "variant": "secondary"
+          },
+          "text": "Let's talk about your next project — we're one message away."
+        },
+        "hidden": false,
+        "id": "6djp0awwab"
+      },
+      {
+        "content": {
+          "text": "© 2026 Pizza Restaurant. All rights reserved.",
           "columns": [
             {
               "links": [
                 {
-                  "label": "Home",
-                  "href": "#home"
+                  "href": "#home",
+                  "label": "Home"
                 },
                 {
-                  "href": "#about",
-                  "label": "About"
+                  "label": "About",
+                  "href": "#about"
                 },
                 {
-                  "label": "Contact",
-                  "href": "#contact"
+                  "href": "#contact",
+                  "label": "Contact"
                 }
               ],
               "title": "Explore"
             },
             {
-              "title": "Services",
               "links": [
                 {
-                  "label": "Our Services",
-                  "href": "#services"
+                  "href": "#services",
+                  "label": "Our Services"
                 },
                 {
-                  "href": "#pricing",
-                  "label": "Pricing"
+                  "label": "Pricing",
+                  "href": "#pricing"
                 }
-              ]
+              ],
+              "title": "Services"
             }
           ]
         },
+        "id": "6djp0bm51x",
         "type": "footer",
-        "id": "yr8x0bgtxy"
+        "hidden": false
       }
-    ],
-    "templateId": "tpl-rest-elegant",
-    "theme": {
-      "mode": "light",
-      "colors": {
-        "text": "#292524",
-        "secondary": "#292524",
-        "surface": "#ffffff",
-        "primary": "#a16207",
-        "textMuted": "#78716c",
-        "accent": "#d4a017",
-        "background": "#fbf7f0",
-        "primaryHover": "#854d0e"
-      },
-      "density": "comfortable",
-      "fonts": {
-        "heading": "inter-sora",
-        "arabic": "kufi",
-        "body": "inter-sora"
-      },
-      "radius": "lg",
-      "buttonStyle": "solid",
-      "cardStyle": "elevated"
-    }
-  }
+    ]
+  },
+  "status": "draft",
+  "createdAt": "2026-08-17T12:15:54.134Z",
+  "createdFrom": "tpl-rest-elegant"
 }
