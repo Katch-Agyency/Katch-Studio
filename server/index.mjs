@@ -239,6 +239,13 @@ export async function createHandler(req, res) {
   const url = new URL(req.url ?? "/", "http://localhost");
   const route = `${req.method} ${url.pathname}`;
 
+  // Client branches are presentation-only. Never expose repository/deployment
+  // mutations merely because the shared server files exist in the branch.
+  if (!serverConfig.katchVisibility) {
+    sendJson(res, 404, { error: { code: "client-mode", message: "Deployment API is disabled for client websites." } });
+    return;
+  }
+
   if (req.method === "OPTIONS") {
     res.writeHead(204, { Allow: "GET, POST, OPTIONS" });
     res.end();

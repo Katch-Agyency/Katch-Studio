@@ -10,6 +10,8 @@ import { createProjectFromTemplate, duplicateProject } from "@/lib/projectFactor
 import { TEMPLATES, getTemplate } from "@/data/templates";
 import { SECTION_DEFINITIONS, SECTION_TYPES } from "@/features/sections/registry";
 import { deepMerge, validateProject } from "@/utils/helpers";
+import { projectForClientBranch } from "@/data/demoImages";
+import { parseClientProject, resolveClientPage } from "@/client/projectLoader";
 
 declare const process: { exit(code: number): void; cwd(): string };
 
@@ -342,6 +344,25 @@ console.log("\n14) Deployment — naming, fingerprints, commits, config shape");
   /* Fresh projects carry no deployment key */
   const fresh = createProjectFromTemplate({ templateId: "tpl-rest-elegant", name: "Fresh", client: "", language: "en" });
   assert(!("deployment" in fresh), "new projects have no deployment field until deployed");
+}
+
+console.log("\n15) Client branch mode — JSON loading, routing, stable assets");
+{
+  const exported = projectForClientBranch(looky);
+  const encoded = JSON.stringify(exported);
+  assert(encoded.includes("/src/assets/demo/cakes-hero.jpg"), "branch export replaces build-specific demo image URL");
+  const parsed = parseClientProject(JSON.parse(encoded), {
+    "/src/assets/demo/cakes-hero.jpg": "/assets/cakes-hero-built.jpg",
+  });
+  const parsedHero = parsed.config.sections.find((section) => section.type === "hero");
+  assert(JSON.stringify(parsedHero).includes("/assets/cakes-hero-built.jpg"), "client loader resolves stable source asset through Vite manifest");
+  assert(resolveClientPage(parsed.config.pages, "/")?.name === "Home", "root URL resolves the home page");
+  const secondary = parsed.config.pages.find((page) => page.path !== "/");
+  assert(!secondary || resolveClientPage(parsed.config.pages, secondary.path)?.id === secondary.id, "configured page path resolves the matching page");
+  assert(resolveClientPage(parsed.config.pages, "/does-not-exist") === undefined, "unknown URL resolves to client 404");
+  let invalidRejected = false;
+  try { parseClientProject({ hello: "world" }); } catch { invalidRejected = true; }
+  assert(invalidRejected, "invalid project.json is rejected before rendering");
 }
 
 console.log(`\n${failures === 0 ? "ALL CHECKS PASSED" : failures + " CHECKS FAILED"}`);

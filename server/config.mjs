@@ -14,7 +14,16 @@
    ============================================================ */
 
 import dotenv from "dotenv";
+import { readFileSync } from "node:fs";
+
 dotenv.config({ quiet: true });
+
+let repositoryMode = { katch_visibility: true };
+try {
+  repositoryMode = JSON.parse(readFileSync(new URL("../katch.config.json", import.meta.url), "utf8"));
+} catch (error) {
+  console.warn("[Katch Studio] Could not read katch.config.json; defaulting to Studio mode.", error);
+}
 
 export function getDeploymentMode() {
   const explicit = (process.env.DEPLOYMENT_MODE ?? "").toLowerCase();
@@ -30,6 +39,8 @@ export function getDeploymentMode() {
 
 export const serverConfig = {
   mode: getDeploymentMode(),
+  /** Client branches render only the website and disable deployment mutations. */
+  katchVisibility: repositoryMode.katch_visibility !== false,
 
   github: {
     appId: process.env.GITHUB_APP_ID ?? "",
