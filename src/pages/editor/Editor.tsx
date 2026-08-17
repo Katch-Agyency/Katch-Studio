@@ -8,6 +8,7 @@ import {
   Eye,
   Files,
   Layers,
+  LayoutTemplate,
   Loader2,
   Monitor,
   MoreHorizontal,
@@ -92,7 +93,7 @@ export default function EditorPage() {
 
 function EditorInner({ projectId }: { projectId: string }) {
   const { project, saveState, update, save, reset, canUndo, canRedo, undo, redo } = useEditor();
-  const { duplicateProject } = useStore();
+  const { duplicateProject, saveProjectAsTemplate } = useStore();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -172,6 +173,12 @@ function EditorInner({ projectId }: { projectId: string }) {
       toast("success", "Project duplicated.");
       navigate(`/editor/${copy.id}`);
     }
+  };
+
+  const onSaveAsTemplate = () => {
+    const template = saveProjectAsTemplate(project);
+    toast("success", `Saved as template “${template.name}”.`);
+    setMenuOpen(false);
   };
 
   const status = project.status;
@@ -308,6 +315,9 @@ function EditorInner({ projectId }: { projectId: string }) {
                   </button>
                   <button className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] text-ink hover:bg-surface-2" onClick={() => { onDuplicate(); setMenuOpen(false); }}>
                     <Copy className="h-3.5 w-3.5 text-ink-muted" /> Duplicate project
+                  </button>
+                  <button className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] text-ink hover:bg-surface-2" onClick={onSaveAsTemplate}>
+                    <LayoutTemplate className="h-3.5 w-3.5 text-ink-muted" /> Save as template
                   </button>
                   <button className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] text-ink hover:bg-surface-2" onClick={() => { reset(); setMenuOpen(false); }}>
                     <RotateCcw className="h-3.5 w-3.5 text-ink-muted" /> Discard changes

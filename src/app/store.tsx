@@ -4,6 +4,7 @@ import type { StorageSnapshot, StudioStorageAdapter } from "@/types/storage";
 import { createLocalStorageAdapter } from "@/storage/local";
 import { buildDemoProjects } from "@/data/demo";
 import { createProjectFromTemplate, duplicateProject as cloneProject, type CreateProjectInput } from "@/lib/projectFactory";
+import { projectToTemplate } from "@/lib/templateFromProject";
 import { TEMPLATES } from "@/data/templates";
 import { uid } from "@/utils/helpers";
 import { useToast } from "@/app/toast";
@@ -100,6 +101,8 @@ export interface StudioStore extends StudioState {
   resetDemoData: () => void;
   clearAllData: () => void;
   duplicateTemplate: (id: string) => WebsiteTemplate | undefined;
+  saveProjectAsTemplate: (project: Project, name?: string) => WebsiteTemplate;
+  deleteTemplate: (id: string) => void;
 }
 
 const StoreContext = createContext<StudioStore | null>(null);
@@ -291,6 +294,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [customTemplates]
   );
 
+  /** Promote a finished project into the template library */
+  const saveProjectAsTemplate = useCallback(
+    (project: Project, name?: string) => {
+      const template = projectToTemplate(project, name);
+      setCustomTemplates((prev) => [template, ...prev]);
+      return template;
+    },
+    []
+  );
+
+  const deleteTemplate = useCallback((id: string) => {
+    setCustomTemplates((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
   const allTemplates = useMemo<WebsiteTemplate[]>(
     () => [...customTemplates, ...TEMPLATES],
     [customTemplates]
@@ -316,6 +333,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       resetDemoData,
       clearAllData,
       duplicateTemplate,
+      saveProjectAsTemplate,
+      deleteTemplate,
     }),
     [
       hydrated,
@@ -334,6 +353,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       resetDemoData,
       clearAllData,
       duplicateTemplate,
+      saveProjectAsTemplate,
+      deleteTemplate,
       allTemplates,
     ]
   );

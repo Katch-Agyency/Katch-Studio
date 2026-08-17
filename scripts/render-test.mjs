@@ -16,7 +16,9 @@ await build({
   format: "esm",
   outfile: "/tmp/katch-render-entry.mjs",
   alias: { "@": path.join(root, "src") },
-  loader: { ".jpg": "dataurl", ".png": "dataurl" },
+  /* "file" loader (not dataurl): keeps project JSON in localStorage small so the
+     5 MB jsdom quota never trips — images are just URL strings in the tests. */
+  loader: { ".jpg": "file", ".png": "file" },
   /* Firebase is lazily imported only when VITE_FIREBASE_* is configured —
      keep it out of the test bundle (and it is never exercised in tests). */
   external: ["firebase", "firebase/*"],
@@ -208,6 +210,15 @@ ok(document.querySelectorAll("img").length >= 20, "20 template preview images");
 ok(text().includes("Elegant Restaurant") && text().includes("Developer Portfolio"), "classic template names");
 ok(text().includes("Fashion Editorial") && text().includes("AI Product"), "e-commerce & SaaS templates listed");
 ok(text().includes("E-commerce") && text().includes("SaaS"), "new category filters shown");
+ok(text().includes("New from project"), "create-template-from-project button present");
+/* Open the create-from-project modal */
+const newFromProject = [...document.querySelectorAll("button")].find((b) => b.textContent.includes("New from project"));
+newFromProject?.click();
+await waitFor(() => text().includes("Create template from a project"));
+ok(text().includes("Create template from a project"), "project→template modal opens");
+const cancelBtn = [...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Cancel");
+cancelBtn?.click();
+await new Promise((r) => setTimeout(r, 300));
 nav("/sections");
 await waitFor(() => text().includes("Reservation"));
 ok(text().includes("Navbar") && text().includes("Reservation") && text().includes("Case Studies"), "section library");
@@ -218,6 +229,30 @@ nav("/settings");
 await waitFor(() => text().includes("Restore demo data"));
 ok(text().includes("Workspace") && text().includes("Restore demo data"), "settings");
 ok(text().includes("Storage & Sync") && text().includes("Local browser storage"), "storage status shows local adapter when no Firebase env");
+
+console.log("\n6b) Export modal — scaffold + share");
+nav(`/editor/${lookyId}`);
+await waitFor(() => text().includes("Signature Cakes"));
+const exportBtn = [...document.querySelectorAll("button")].find((b) => b.textContent.includes("Export"));
+exportBtn?.click();
+await waitFor(() => text().includes("Standalone React/Vite project"));
+ok(text().includes("Standalone React/Vite project"), "real code-generation export row");
+ok(text().includes("Share for review"), "share-for-review row");
+const closeBtn = [...document.querySelectorAll("button")].find((b) => b.getAttribute("aria-label") === "Close dialog");
+closeBtn?.click();
+await new Promise((r) => setTimeout(r, 300));
+/* Save-as-template in the editor menu */
+const moreBtn = [...document.querySelectorAll("button")].find((b) => b.getAttribute("aria-label") === "More actions");
+moreBtn?.click();
+await waitFor(() => text().includes("Save as template"));
+ok(text().includes("Save as template"), "editor menu has Save as template");
+const menuSave = [...document.querySelectorAll("button")].find((b) => b.textContent.includes("Save as template"));
+menuSave?.click();
+await waitFor(() => text().includes("Saved as template"));
+ok(text().includes("Saved as template"), "save-as-template toast confirms");
+/* the template landed in the store */
+const customTpls = JSON.parse(localStorage.getItem("katch-studio:customTemplates:v1") ?? "[]");
+ok(customTpls.some((t) => t.name.includes("Looky Cakes")), "custom template persisted");
 
 console.log("\n7) Full-screen preview");
 nav(`/preview/${lookyId}`);

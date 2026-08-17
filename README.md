@@ -75,9 +75,16 @@ template duplication (custom templates), 20 templates incl. E-commerce & SaaS,
 configuration + resolved-structure export, RTL/Arabic websites, demo data,
 **Firestore sync (optional, env-gated — see `docs/FIREBASE.md`)**, **PWA install + offline shell**.
 
-**Planned (architected, not implemented):** automated scaffold generation (`client-project/`
-React/Vite output), Firebase Auth with real accounts & team roles, Firebase Storage for assets,
-deployment pipeline, client portal, AI suggestions, template editing, Sentry monitoring.
+**Roadmap status** (Settings → Architecture Roadmap):
+
+- ✅ Firestore sync (anonymous auth, env-gated) · ✅ standalone React/Vite project export
+  (**real code generation** — the ZIP is the actual client website, same renderer as the preview;
+  verified by building it: `npm install && npm run build` passes) · ✅ template lifecycle
+  (duplicate / create-from-project / delete custom) · ✅ share-for-review link · ✅ Sentry
+  error reporting (env-gated via `VITE_SENTRY_DSN`) · ✅ PWA (install + offline shell + updates)
+- Next phase: automated deployment (generated project → GitHub → Vercel), client feedback &
+  approval on review links, Google sign-in with per-member roles, AI suggestions, Firebase
+  Storage for large asset libraries.
 
 ## Running it
 

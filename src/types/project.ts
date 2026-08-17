@@ -84,6 +84,8 @@ export interface WebsiteTemplate {
   defaultContent?: Partial<Record<SectionType, Record<string, unknown>>>;
   pages: { name: string; path: string; sections: SectionType[] }[];
   themePresetId: string;
+  /** Exact theme override (custom templates preserve their project's look) */
+  theme?: ThemeConfig;
   features: string[]; // feature ids enabled by default
   featured: boolean;
 }

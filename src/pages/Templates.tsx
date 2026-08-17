@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Copy, Layers, Lock, Sparkles } from "lucide-react";
+import { Copy, Layers, Lock, Plus, Sparkles, Trash2 } from "lucide-react";
 import { Button, Badge } from "@/components/ui/ui";
+import { ConfirmDialog, Modal } from "@/components/ui/Modal";
 import { useStore } from "@/app/store";
 import { useToast } from "@/app/toast";
 import { WEBSITE_CATEGORIES } from "@/data/features";
@@ -15,13 +16,23 @@ import { cn } from "@/utils/helpers";
    ============================================================ */
 
 export default function Templates() {
-  const { allTemplates, duplicateTemplate } = useStore();
+  const { allTemplates, duplicateTemplate, saveProjectAsTemplate, deleteTemplate, projects } = useStore();
   const { toast } = useToast();
   const [category, setCategory] = useState<string>("all");
+  const [fromProjectOpen, setFromProjectOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const onDuplicate = (id: string) => {
     const copy = duplicateTemplate(id);
     if (copy) toast("success", `Template duplicated as \u201c${copy.name}\u201d.`);
+  };
+
+  const onCreateFromProject = (projectId: string) => {
+    const project = projects.find((p) => p.id === projectId);
+    if (!project) return;
+    const template = saveProjectAsTemplate(project);
+    toast("success", `Template \u201c${template.name}\u201d created from the project.`);
+    setFromProjectOpen(false);
   };
 
   const list = useMemo(
@@ -32,10 +43,15 @@ export default function Templates() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-8">
       <div className="animate-fade-up">
-        <h1 className="text-2xl font-bold tracking-tight text-ink">Template Library</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Template Library</h1>
+          <Button variant="secondary" size="sm" onClick={() => setFromProjectOpen(true)}>
+            <Plus className="h-3.5 w-3.5" /> New from project
+          </Button>
+        </div>
         <p className="mt-1 max-w-xl text-sm leading-relaxed text-ink-muted">
-          Reusable starting points built from the section system. A template is never edited by a project —
-          projects are clones you can customize freely.
+          Reusable starting points built from the section system. Duplicate a template to evolve the
+          design system, or promote any finished project into the library.
         </p>
       </div>
 
@@ -114,21 +130,83 @@ export default function Templates() {
                       <Sparkles className="h-3.5 w-3.5" /> Use Template
                     </Button>
                   </Link>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDuplicate(tpl.id)}
-                    title="Duplicate this template"
-                    className="shrink-0"
-                  >
-                    <Copy className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDuplicate(tpl.id)}
+                      title="Duplicate this template"
+                      className="shrink-0"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                    {tpl.id.startsWith("tpl-custom-") && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDeleteId(tpl.id)}
+                        title="Delete this custom template"
+                        className="shrink-0 text-danger hover:bg-danger-muted"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Create from project */}
+      <Modal
+        open={fromProjectOpen}
+        onClose={() => setFromProjectOpen(false)}
+        title="Create template from a project"
+        description="Any finished project becomes a reusable template — sections, content, theme and features carry over."
+        size="md"
+      >
+        {projects.length === 0 ? (
+          <p className="py-6 text-center text-sm text-ink-faint">No projects yet — create one first.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {projects.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => onCreateFromProject(p.id)}
+                className="flex w-full items-center gap-3 rounded-lg border border-line bg-surface-1 px-3 py-2.5 text-left transition-colors hover:border-line-strong hover:bg-surface-2"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-line bg-surface-2 text-[11px] font-bold text-ink-muted">
+                  {(p.config.projectInfo.name || "?").slice(0, 2).toUpperCase()}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13.5px] font-medium text-ink">
+                    {p.config.projectInfo.name || "Untitled Project"}
+                  </span>
+                  <span className="block text-[11.5px] text-ink-faint">
+                    {p.config.projectInfo.category} · {p.config.pages.length} pages · {p.config.sections.length} sections
+                  </span>
+                </span>
+                <Plus className="h-3.5 w-3.5 shrink-0 text-ink-faint" aria-hidden />
+              </button>
+            ))}
+          </div>
+        )}
+      </Modal>
+
+      <ConfirmDialog
+        open={Boolean(deleteId)}
+        onClose={() => setDeleteId(null)}
+        onConfirm={() => {
+          if (!deleteId) return;
+          deleteTemplate(deleteId);
+          toast("success", "Template deleted.");
+        }}
+        title="Delete template"
+        message="This custom template will be removed from the library. Projects already created from it are not affected."
+        confirmLabel="Delete Template"
+      />
 
       {/* Future note */}
       <div className="mt-8 flex items-start gap-3 rounded-xl border border-line bg-surface-1 p-4">

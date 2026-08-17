@@ -187,6 +187,62 @@ console.log("\n11) JSON purity — projects must contain no undefined fields");
   assert(bad === 0, `all ${allProjects.length} projects are JSON-pure (undefined-free) for Firestore`);
 }
 
+console.log("\n12) Standalone scaffold (real code generation)");
+{
+  const { buildScaffoldFiles } = await import("@/lib/scaffold");
+  /* esbuild inlines the JSON import as an object; in the raw-file fallback it's a string */
+  const rawCatalogue = (await import("@/features/export/catalogue.json")) as unknown;
+  let cat: Record<string, string> = {};
+  if (typeof rawCatalogue === "string") {
+    cat = JSON.parse(rawCatalogue) as Record<string, string>;
+  } else if (typeof (rawCatalogue as { default?: unknown }).default === "object") {
+    cat = (rawCatalogue as { default: Record<string, string> }).default;
+  } else {
+    cat = rawCatalogue as Record<string, string>;
+  }
+
+  const files = await buildScaffoldFiles(looky, cat, { embed: false });
+  const names = Object.keys(files);
+  assert(Boolean(files["package.json"]), "package.json present");
+  assert(Boolean(files["index.html"] && files["src/App.tsx"] && files["src/main.tsx"]), "app entry files present");
+  assert(Boolean(files["src/data/website.json"]), "website.json data file present");
+  assert(Boolean(files["src/website/WebsiteRenderer.tsx"] && files["src/features/sections/registry.ts"]), "website layer sources embedded");
+  assert(Boolean(files["src/types/index.ts"]), "types index generated");
+  const pkg = JSON.parse(files["package.json"]);
+  assert(Boolean(pkg.dependencies?.react && pkg.devDependencies?.vite), "generated package.json has react + vite");
+  const site = JSON.parse(files["src/data/website.json"]);
+  assert(site.project?.name === "Looky Cakes", "website.json carries the project");
+  const readme = files["README.md"];
+  assert(readme.includes("npm run dev") && readme.includes("Looky Cakes"), "handover README written");
+  assert(names.length >= 30, `30+ files generated (${names.length})`);
+}
+
+console.log("\n13) Template lifecycle (project → template → project)");
+{
+  const { projectToTemplate } = await import("@/lib/templateFromProject");
+  const tpl = projectToTemplate(looky, "Looky Cakes Template");
+  assert(tpl.id.startsWith("tpl-custom-"), "custom template id");
+  assert(tpl.name === "Looky Cakes Template", "custom name applied");
+  assert(tpl.category === "restaurant" && tpl.defaultSections.includes("hero"), "category + sections carried");
+  assert(Boolean(tpl.theme && tpl.theme.colors.primary === looky.config.theme.colors.primary), "exact theme carried");
+  assert(Boolean(tpl.defaultContent?.hero), "content carried");
+  assert(tpl.pages.length === looky.config.pages.length, "page structure carried");
+  assert(tpl.features.length > 0, "enabled features carried");
+
+  /* Clone through the factory — the full round trip */
+  const clone = createProjectFromTemplate({ templateId: tpl.id, template: tpl, name: "Clone Demo", client: "Demo", language: "en" });
+  assert(clone.config.theme.colors.primary === looky.config.theme.colors.primary, "clone keeps the exact theme");
+  const cloneHero = clone.config.sections.find((s) => s.type === "hero");
+  const lookyHero = looky.config.sections.find((s) => s.type === "hero");
+  assert(
+    JSON.stringify(cloneHero?.content) === JSON.stringify(lookyHero?.content),
+    "clone keeps the exact content"
+  );
+  const ids = new Set(clone.config.sections.map((s) => s.id));
+  const orphan = clone.config.pages.flatMap((pg) => pg.sections).filter((id) => !ids.has(id));
+  assert(orphan.length === 0, "clone: no orphan section refs");
+}
+
 console.log("\n12) ZIP export package");
 {
   const { buildProjectZip, buildResolvedStructure, projectZipFilename } = await import("@/lib/exportZip");

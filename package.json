@@ -8,14 +8,18 @@
     "node": ">=20"
   },
   "scripts": {
-    "predev": "node scripts/check-env.mjs",
+    "predev": "node scripts/check-env.mjs && node scripts/generate-catalogue.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/check-env.mjs",
+    "prebuild": "node scripts/check-env.mjs && node scripts/generate-catalogue.mjs",
     "build": "tsc --noEmit && vite build && node scripts/copy-404.mjs",
     "preview": "vite preview",
+    "pretypecheck": "node scripts/generate-catalogue.mjs",
     "typecheck": "tsc --noEmit",
+    "pretest:data": "node scripts/generate-catalogue.mjs",
     "test:data": "esbuild src/scripts/smoke.ts --bundle --platform=node --format=esm --alias:@=./src --loader:.jpg=dataurl --outfile=/tmp/katch-smoke.mjs && node /tmp/katch-smoke.mjs",
-    "test:render": "node scripts/render-test.mjs"
+    "pretest:render": "node scripts/generate-catalogue.mjs",
+    "test:render": "node scripts/render-test.mjs",
+    "test:scaffold": "node scripts/scaffold-verify.mjs"
   },
   "dependencies": {
     "firebase": "^12.17.1",

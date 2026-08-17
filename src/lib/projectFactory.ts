@@ -167,13 +167,16 @@ export function createProjectFromTemplate(input: CreateProjectInput): Project {
 
   const now = new Date().toISOString();
   const baseTheme = themeFromPreset(tpl.themePresetId);
-  const theme: ThemeConfig = deepMerge(baseTheme, {
-    ...(input.theme ?? {}),
-    /* Arabic projects default to an Arabic typeface pair */
-    ...(input.language === "ar"
-      ? { fonts: { heading: "kufi", body: "kufi", arabic: "kufi" } }
-      : {}),
-  });
+  const theme: ThemeConfig = deepMerge(
+    deepMerge(baseTheme, tpl.theme ?? {}),
+    {
+      ...(input.theme ?? {}),
+      /* Arabic projects default to an Arabic typeface pair */
+      ...(input.language === "ar"
+        ? { fonts: { heading: "kufi", body: "kufi", arabic: "kufi" } }
+        : {}),
+    }
+  );
   const config: ProjectConfig = {
     projectInfo: info,
     brand,

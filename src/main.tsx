@@ -6,9 +6,11 @@ import { StoreProvider } from "./app/store";
 import { ThemeProvider } from "./app/theme";
 import { ToastProvider } from "./app/toast";
 import { registerPWA } from "./app/pwa";
+import { registerErrorReporting } from "./app/errorReporting";
 import "./index.css";
 
 registerPWA();
+registerErrorReporting();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
