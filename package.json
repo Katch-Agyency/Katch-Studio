@@ -23,9 +23,7 @@
     "test:export": "node scripts/export-test.mjs"
 =======
     "test:server": "node scripts/server-test.mjs",
-    "test:scaffold": "node scripts/scaffold-verify.mjs",
-    "test:client": "node scripts/client-mode-verify.mjs"
->>>>>>> e6cb2fb (all changes)
+    "test:scaffold": "node scripts/scaffold-verify.mjs"
   },
   "dependencies": {
     "firebase": "^12.17.1",

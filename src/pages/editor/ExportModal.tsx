@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -25,12 +26,25 @@ import {
   GitBranch,
   Link2,
 >>>>>>> e6cb2fb (all changes)
+=======
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Check,
+  Copy,
+  ExternalLink,
+  FileDown,
+  FileJson,
+  GitBranch,
+  Link2,
+>>>>>>> e6cb2fb (all changes)
   Rocket,
 } from "lucide-react";
 import { useEditor } from "./editorStore";
 import { Modal } from "@/components/ui/Modal";
 import { Badge, Button } from "@/components/ui/ui";
 import { useToast } from "@/app/toast";
+<<<<<<< HEAD
 <<<<<<< HEAD
 import { getTemplate } from "@/data/templates";
 import { getFeature } from "@/data/features";
@@ -42,6 +56,8 @@ import { deepMerge, downloadFile, slugify } from "@/utils/helpers";
 
 const INITIAL_PROGRESS: ExportProgress = { phase: "idle", label: "Ready", completed: 0, total: 6 };
 =======
+=======
+>>>>>>> e6cb2fb (all changes)
 import { projectForClientBranch } from "@/data/demoImages";
 import { downloadFile } from "@/utils/helpers";
 
@@ -56,6 +72,7 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
   const { project } = useEditor();
   const { toast } = useToast();
   const navigate = useNavigate();
+<<<<<<< HEAD
 <<<<<<< HEAD
   const [tab, setTab] = useState<"export" | "future">("export");
   const [zipPanel, setZipPanel] = useState(false);
@@ -125,6 +142,14 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
   const branchProject = useMemo(() => projectForClientBranch(project), [project]);
   const branchJson = useMemo(() => JSON.stringify(branchProject, null, 2), [branchProject]);
 >>>>>>> e6cb2fb (all changes)
+=======
+  const [tab, setTab] = useState<"export" | "deploy">("export");
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState<"config" | "link" | null>(null);
+
+  const branchProject = useMemo(() => projectForClientBranch(project), [project]);
+  const branchJson = useMemo(() => JSON.stringify(branchProject, null, 2), [branchProject]);
+>>>>>>> e6cb2fb (all changes)
 
   const downloadProject = () => {
     downloadFile("project.json", branchJson);
@@ -132,10 +157,13 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
   };
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   const downloadStructure = () => {
     downloadFile(`katch-website-${slug}.json`, JSON.stringify(buildStructure(), null, 2));
     toast("success", "Website structure downloaded.");
 =======
+=======
+>>>>>>> e6cb2fb (all changes)
   const copyProject = async () => {
     try {
       await navigator.clipboard.writeText(branchJson);
@@ -191,6 +219,7 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
       onClose={busy ? () => undefined : onClose}
       title="Export Project"
 <<<<<<< HEAD
+<<<<<<< HEAD
       description="Download a standalone website, back up its configuration, or open the full preview."
       size="lg"
     >
@@ -205,6 +234,8 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
         </div>
       )}
 =======
+=======
+>>>>>>> e6cb2fb (all changes)
       description="Move this project into a dedicated client branch or share its current preview."
       size="lg"
     >
@@ -240,6 +271,7 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
         <div className="space-y-3">
           <ExportRow
 <<<<<<< HEAD
+<<<<<<< HEAD
             icon={<Archive className="h-4 w-4" />}
             title="Standalone React/Vite project"
             desc="A complete website codebase with pages, sections, content, theme, features and downloadable assets. Extract it, run npm install, then npm run dev."
@@ -257,6 +289,8 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
             desc="Every page and section with defaults merged into the configured content."
             action={<Button size="sm" onClick={downloadStructure}><FileDown className="h-3.5 w-3.5" /> Download .json</Button>}
 =======
+=======
+>>>>>>> e6cb2fb (all changes)
             icon={<FileJson className="h-4 w-4" />}
             title="Client branch configuration"
             desc="The complete current project—pages, ordered sections, content, theme, features and language—in the exact format client mode reads."
@@ -294,11 +328,15 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
             title="Share current Studio preview"
             desc="Create a read-only preview link before preparing the client branch."
             action={<Button size="sm" onClick={buildShareLink}><Link2 className="h-3.5 w-3.5" /> Create link</Button>}
+<<<<<<< HEAD
+>>>>>>> e6cb2fb (all changes)
+=======
 >>>>>>> e6cb2fb (all changes)
           />
           <ExportRow
             icon={<ExternalLink className="h-4 w-4" />}
             title="Full-screen preview"
+<<<<<<< HEAD
 <<<<<<< HEAD
             desc="Open the rendered website in a clean window for client review."
             action={<Button size="sm" onClick={openFullPreview}><ExternalLink className="h-3.5 w-3.5" /> Open Preview</Button>}
@@ -307,6 +345,11 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
             desc="Open the current rendered website in a clean review window."
             action={<Button size="sm" onClick={openFullPreview}><ExternalLink className="h-3.5 w-3.5" /> Open Preview</Button>}
           />
+=======
+            desc="Open the current rendered website in a clean review window."
+            action={<Button size="sm" onClick={openFullPreview}><ExternalLink className="h-3.5 w-3.5" /> Open Preview</Button>}
+          />
+>>>>>>> e6cb2fb (all changes)
 
           {shareUrl && (
             <div className="flex items-center gap-2 rounded-lg border border-brand-ring bg-brand-muted/40 p-3">
@@ -317,6 +360,9 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
               </Button>
             </div>
           )}
+<<<<<<< HEAD
+>>>>>>> e6cb2fb (all changes)
+=======
 >>>>>>> e6cb2fb (all changes)
         </div>
       ) : (
@@ -324,9 +370,12 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
           <div className="rounded-xl border border-line bg-surface-0/50 p-4">
             <div className="flex items-center justify-between gap-3">
 <<<<<<< HEAD
+<<<<<<< HEAD
               <p className="flex items-center gap-2 text-[13.5px] font-semibold text-ink"><Github className="h-4 w-4 text-brand-hover" /> Push generated files to GitHub</p>
               <Badge tone="accent">Planned</Badge>
 =======
+=======
+>>>>>>> e6cb2fb (all changes)
               <p className="flex items-center gap-2 text-[13.5px] font-semibold text-ink">
                 <Rocket className="h-4 w-4 text-brand-hover" /> Automated deployment
               </p>
@@ -363,6 +412,7 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
   );
 }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 function ZipPanel({
   projectName,
@@ -480,6 +530,8 @@ function Option({ checked, disabled, onChange, label, hint }: { checked: boolean
   );
 }
 
+=======
+>>>>>>> e6cb2fb (all changes)
 =======
 >>>>>>> e6cb2fb (all changes)
 function ExportRow({ icon, title, desc, action }: { icon: React.ReactNode; title: string; desc: string; action: React.ReactNode }) {

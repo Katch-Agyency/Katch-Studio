@@ -232,9 +232,7 @@ await waitFor(() => text().includes("Restore demo data"));
 ok(text().includes("Workspace") && text().includes("Restore demo data"), "settings");
 ok(text().includes("Storage & Sync") && text().includes("Local browser storage"), "storage status shows local adapter when no Firebase env");
 
-<<<<<<< HEAD
-=======
-console.log("\n6b) Export modal — client branch configuration");
+console.log("\n6b) Export modal — scaffold + share");
 nav(`/editor/${lookyId}`);
 await waitFor(() => text().includes("Signature Cakes"));
 const exportBtn = [...document.querySelectorAll("button")].find((b) => b.textContent.includes("Export"));
