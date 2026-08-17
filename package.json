@@ -8,7 +8,9 @@
     "node": ">=20"
   },
   "scripts": {
+    "predev": "node scripts/check-env.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/check-env.mjs",
     "build": "tsc --noEmit && vite build && node scripts/copy-404.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",

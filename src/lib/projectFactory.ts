@@ -74,13 +74,17 @@ function buildSections(
   return types.map((type) => {
     const defaults = sectionDefaults(type, brand) as unknown as Record<string, unknown>;
     const override = contentOverrides[type] ?? {};
-    return {
+    const instance: SectionInstance = {
       id: uid(),
       type,
       hidden: false,
-      variant: variants[type],
-      content: deepMerge(defaults, override),
-    } as SectionInstance;
+      content: deepMerge(defaults, override) as SectionInstance["content"],
+    };
+    /* Only set `variant` when one exists — Firestore rejects documents
+       containing `undefined` field values. */
+    const variantId = variants[type];
+    if (variantId) instance.variant = variantId;
+    return instance;
   });
 }
 

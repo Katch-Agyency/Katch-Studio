@@ -13,6 +13,25 @@ import { deepMerge, validateProject } from "@/utils/helpers";
 
 declare const process: { exit(code: number): void; cwd(): string };
 
+
+/* Recursive deep-equal for JSON-safe structures (key order preserved) */
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== typeof b) return false;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a.length === b.length && a.every((v, i) => deepEqual(v, b[i]));
+  }
+  if (a && b && typeof a === "object" && typeof b === "object") {
+    const ka = Object.keys(a as object);
+    const kb = Object.keys(b as object);
+    return (
+      ka.length === kb.length &&
+      ka.every((k) => deepEqual((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]))
+    );
+  }
+  return false;
+}
+
 let failures = 0;
 function assert(cond: boolean, label: string) {
   if (cond) console.log("  ✓", label);
@@ -140,14 +159,33 @@ assert(manifest.name.includes("Katch Studio") && manifest.display === "standalon
 assert(manifest.icons.some((i: { purpose?: string }) => i.purpose === "maskable"), "manifest: maskable icon");
 assert(manifest.theme_color === "#0d100c", "manifest: dark theme color");
 
-console.log("\n11) Section styles & variants resolve");
-const { resolveSectionStyles } = await import("@/website/renderer");
+console.log("\n11) Section styles & variants resolve");const { resolveSectionStyles } = await import("@/website/renderer");
 const st = resolveSectionStyles({ id: "x", type: "hero", hidden: false, content: {} } as never);
 assert(st.variant === "default" && st.styles.spacing === "md" && st.styles.visibility.desktop, "style defaults resolve");
 const st2 = resolveSectionStyles({ id: "x", type: "hero", variant: "editorial", hidden: false, content: {}, styles: { spacing: "xl" } } as never);
 assert(st2.variant === "editorial" && st2.styles.spacing === "xl", "variant + style overrides resolve");
 const allVariants = SECTION_TYPES.filter((t) => SECTION_DEFINITIONS[t].variants?.length);
 assert(allVariants.length >= 10, `variants defined for 10+ section types (${allVariants.length})`);
+
+
+console.log("\n11) JSON purity — projects must contain no undefined fields");
+{
+  /* Firestore rejects documents with undefined field values; a JSON
+     round-trip that changes the object proves undefined (or non-JSON)
+     fields are present. Every project must survive it untouched. */
+  const allProjects = [...demos, ...TEMPLATES.flatMap((t) => [
+    createProjectFromTemplate({ templateId: t.id, name: `P-${t.id}`, client: "Demo", language: "en" }),
+  ])];
+  let bad = 0;
+  for (const pr of allProjects) {
+    const roundTripped = JSON.parse(JSON.stringify(pr));
+    if (!deepEqual(pr, roundTripped)) {
+      bad++;
+      console.error(`  ✗ ${pr.config.projectInfo.name}: JSON round-trip changed the project (undefined/non-JSON fields present)`);
+    }
+  }
+  assert(bad === 0, `all ${allProjects.length} projects are JSON-pure (undefined-free) for Firestore`);
+}
 
 console.log("\n12) ZIP export package");
 {

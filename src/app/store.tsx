@@ -24,6 +24,29 @@ import { useToast } from "@/app/toast";
 
 /* ---------- Adapter resolution (env-gated) ---------- */
 
+/** Turn a storage error into a short, actionable reason for the toast */
+function syncErrorReason(err: unknown): string {
+  const code = (err as { code?: string }).code ?? "";
+  const message = err instanceof Error ? err.message : String(err);
+
+  if (code === "permission-denied" || message.includes("Missing or insufficient permissions")) {
+    return "permission denied — republish firestore.rules (Firestore → Rules) and enable Anonymous sign-in (Authentication → Sign-in method)";
+  }
+  if (code === "resource-exhausted" || message.includes("quota")) {
+    return "Firebase quota exceeded — check Firestore → Usage and wait for the daily reset";
+  }
+  if (code === "unavailable" || code === "network-request-failed" || /network|fetch|offline/i.test(message)) {
+    return "network problem — check your connection and try again";
+  }
+  if (code === "invalid-argument" || message.includes("Unsupported field value")) {
+    return "a project contains an empty field Firestore rejects — update to the latest version, then save again";
+  }
+  if (message.includes("1 MiB")) {
+    return "a project document exceeds Firestore's 1 MiB limit — replace uploaded images with URLs";
+  }
+  return "";
+}
+
 async function resolveAdapter(): Promise<StudioStorageAdapter> {
   const apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
   const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
@@ -91,15 +114,22 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [customTemplates, setCustomTemplates] = useState<WebsiteTemplate[]>([]);
   const [lastOpenedProjectId, setLastOpenedProjectId] = useState<string | null>(null);
 
-  /* Throttled sync-error reporting — never silently fail, never spam */
+  /* Throttled sync-error reporting — never silently fail, never spam.
+     Now includes the REASON so the user knows exactly what to fix. */
   const lastSyncErrorAt = useRef(0);
   const reportSyncError = useCallback(
     (err: unknown) => {
       console.error("[Katch Studio] Storage sync failed:", err);
+      const reason = syncErrorReason(err);
       const now = Date.now();
       if (now - lastSyncErrorAt.current > 8000) {
         lastSyncErrorAt.current = now;
-        toast("error", "Couldn't sync with storage — the latest change may not be saved.");
+        toast(
+          "error",
+          reason
+            ? `Couldn't sync with storage — ${reason}.`
+            : "Couldn't sync with storage — the latest change may not be saved."
+        );
       }
     },
     [toast]
