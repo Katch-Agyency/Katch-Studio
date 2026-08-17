@@ -18,7 +18,7 @@ React/Vite UI (Deploy tab)  →  Secure API layer (/api/*)  →  GitHub · Verce
 * **UI** — the editor's **Deploy** tab (`src/features/deploy/`). The controller (`useDeployment.tsx`) drives the lifecycle: `validate → generate → repository → push → provider → deploy → poll → live`, persists progress onto the project's `deployment` config, and can **retry only the failed stage**.
 * **API** — `server/index.mjs`, one handler used by two runtimes:
   * Local: `npm run server` (port 8787; Vite proxies `/api/*` in dev).
-  * Vercel: `api/index.js` (serverless function; `vercel.json` rewrites `/api/*` to it, Node 20 runtime).
+  * Vercel: `api/index.js` (serverless function; `vercel.json` rewrites `/api/*` to it). The Node version for the function comes from `package.json` `engines.node` (or Vercel → Project → Settings → General → Node.js Version — set 20.x). Do NOT add a `functions.runtime` block to `vercel.json`: the `"nodejs20.x"` syntax is invalid there and fails the build with *"Function Runtimes must have a valid version"*.
 * **Providers** — pluggable backends behind one interface (`DeploymentProvider`):
   * `server/lib/github.mjs` — GitHub App (JWT → installation token) or fine-grained PAT; repositories default **private**, branch `main`; pushes via the Git Data API (one commit per deploy).
   * `server/lib/vercel.mjs` — project ensure + direct-upload deployments (`/v2/now/files` → `/v13/deployments`), status polling, production alias lookup. Works with a token alone — no account-level GitHub OAuth needed.
