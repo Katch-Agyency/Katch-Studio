@@ -31,3 +31,23 @@ if (rawKeys.length > 0) {
   console.warn("  Rename them to VITE_FIREBASE_API_KEY / VITE_FIREBASE_AUTH_DOMAIN / VITE_FIREBASE_PROJECT_ID");
   console.warn("  (Vite only exposes variables whose names start with VITE_).");
 }
+
+/* Deployment backend mode hint — server-side vars only, never VITE_ */
+const deployGithub = Boolean((process.env.GITHUB_APP_ID && process.env.GITHUB_APP_PRIVATE_KEY) || process.env.GITHUB_PAT);
+const deployProvider = Boolean(process.env.VERCEL_TOKEN || process.env.NETLIFY_AUTH_TOKEN);
+const deployExplicit = (process.env.DEPLOYMENT_MODE ?? "").toLowerCase();
+const deployMode = deployExplicit === "mock" ? "mock" : deployExplicit === "live" ? "live" : deployGithub && deployProvider ? "live" : "mock";
+if (deployMode === "live") {
+  console.log(`✓ Deployment backend: LIVE mode (GitHub ${deployGithub ? "configured" : "MISSING"}, provider ${deployProvider ? "configured" : "MISSING"})`);
+} else {
+  console.log("ℹ Deployment backend: MOCK mode — deployments are simulated until server-side credentials are added (see docs/DEPLOY.md).");
+}
+
+/* Anti-leak guard: deployment secrets must never be VITE_-prefixed */
+const leaked = ["VITE_GITHUB_APP_ID", "VITE_GITHUB_PAT", "VITE_GITHUB_APP_PRIVATE_KEY", "VITE_VERCEL_TOKEN", "VITE_NETLIFY_AUTH_TOKEN"].filter(
+  (k) => process.env[k]
+);
+if (leaked.length > 0) {
+  console.warn(`⚠ SECURITY: deployment secrets found with a VITE_ prefix: ${leaked.join(", ")}.`);
+  console.warn("  They would be compiled into the browser bundle. Rename them WITHOUT the VITE_ prefix.");
+}

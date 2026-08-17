@@ -198,7 +198,8 @@ export function createProjectFromTemplate(input: CreateProjectInput): Project {
 }
 
 /** Duplicate a project — copies template, sections, theme, pages and features;
- *  resets client-specific identifiers, keeps content as a starting point. */
+ *  resets client-specific identifiers, keeps content as a starting point.
+ *  Deployment linkage is NOT copied: a duplicate is a fresh site. */
 export function duplicateProject(project: Project): Project {
   const copy = structuredClone(project);
   copy.id = uid();
@@ -209,5 +210,7 @@ export function duplicateProject(project: Project): Project {
   copy.createdAt = new Date().toISOString();
   copy.updatedAt = copy.createdAt;
   copy.createdFrom = project.createdFrom;
+  delete copy.deployment;
+  delete copy.deploymentHistory;
   return copy;
 }

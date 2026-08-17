@@ -10,6 +10,8 @@
   "scripts": {
     "predev": "node scripts/check-env.mjs && node scripts/generate-catalogue.mjs",
     "dev": "vite",
+    "server": "node server/index.mjs",
+    "dev:all": "node scripts/dev-all.mjs",
     "prebuild": "node scripts/check-env.mjs && node scripts/generate-catalogue.mjs",
     "build": "tsc --noEmit && vite build && node scripts/copy-404.mjs",
     "preview": "vite preview",
@@ -19,15 +21,19 @@
     "test:data": "esbuild src/scripts/smoke.ts --bundle --platform=node --format=esm --alias:@=./src --loader:.jpg=dataurl --outfile=/tmp/katch-smoke.mjs && node /tmp/katch-smoke.mjs",
     "pretest:render": "node scripts/generate-catalogue.mjs",
     "test:render": "node scripts/render-test.mjs",
+    "test:server": "node scripts/server-test.mjs",
     "test:scaffold": "node scripts/scaffold-verify.mjs"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
     "firebase": "^12.17.1",
     "jszip": "^3.10.1",
     "lucide-react": "^0.441.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.18.2"
+    "react-router-dom": "^7.18.2",
+    "tar": "^7.5.22",
+    "yazl": "^3.3.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.8",

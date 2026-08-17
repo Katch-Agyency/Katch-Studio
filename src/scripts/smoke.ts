@@ -269,5 +269,80 @@ console.log("\n12) ZIP export package");
   assert(readme.includes("Looky Cakes"), "zipped README mentions the project");
 }
 
+console.log("\n14) Deployment — naming, fingerprints, commits, config shape");
+{
+  const { normalizeRepoName, isValidRepoName, PROVIDER_META, providerMeta } = await import("@/features/deploy/naming");
+  const { contentFingerprint, pageHashes } = await import("@/features/deploy/fingerprint");
+  const { describeCommit } = await import("@/features/deploy/commits");
+
+  /* Repo naming */
+  assert(normalizeRepoName("Looky Cakes") === "katch-looky-cakes", `“Looky Cakes” → ${normalizeRepoName("Looky Cakes")}`);
+  assert(normalizeRepoName("  Bta3  7awa4y!!  ") === "katch-bta3-7awa4y", `specials/uppercase → ${normalizeRepoName("  Bta3  7awa4y!!  ")}`);
+  assert(normalizeRepoName("حلويات", "ab12cd") === "katch-site-ab12cd", "Arabic-only name falls back to katch-site-{id}");
+  assert(normalizeRepoName("Katch-Café & Co.") === "katch-cafe-co", `accents stripped → ${normalizeRepoName("Katch-Café & Co.")}`);
+  assert(normalizeRepoName("katch-katch-double") === "katch-double", "katch- prefix not doubled");
+  assert(isValidRepoName("katch-looky-cakes") && !isValidRepoName("Looky Cakes!") && !isValidRepoName("-bad"), "repo-name validation accepts kebab, rejects spaces/specials/leading hyphens");
+  const longName = normalizeRepoName("a".repeat(300));
+  assert(longName.length <= 100, `long names are capped at 100 chars (${longName.length})`);
+
+  /* Provider meta */
+  assert(PROVIDER_META.length === 2 && providerMeta("vercel").recommended, "Vercel is the default (recommended) provider");
+
+  /* Fingerprint: same content → same hash; edits → different hash */
+  const f1 = contentFingerprint(looky);
+  const f2 = contentFingerprint(looky);
+  assert(f1 === f2 && /^[0-9a-f]{8}$/.test(f1), `fingerprint deterministic (${f1})`);
+  const clone = structuredClone(looky);
+  (clone.config.sections.find((s) => s.type === "hero")!.content as Record<string, unknown>).title = "Changed headline";
+  assert(contentFingerprint(clone) !== f1, "content change flips the fingerprint");
+
+  /* Page hashes localise commits */
+  const hashes = pageHashes(looky);
+  const homeId = looky.config.pages[0].id;
+  assert(typeof hashes[homeId] === "string" && hashes[homeId].length === 8, "per-page hashes computed for the home page");
+
+  /* Commit messages */
+  assert(describeCommit(looky) === "Initial Katch Studio deployment", "first deploy → initial commit message");
+  const deployed = {
+    provider: "vercel" as const,
+    github: { branch: "main" },
+    status: "live" as const,
+    lastCommitId: "abc123",
+    lastContentHash: f1,
+    lastPageHashes: hashes,
+  };
+  assert(describeCommit(looky, deployed) === "Update website content", "same home page → generic update message");
+  const changedHome = {
+    ...deployed,
+    lastPageHashes: { [homeId]: "deadbeef" },
+  };
+  assert(describeCommit(looky, changedHome) === `Update ${looky.config.pages[0].name} homepage`, "changed home page → named commit message");
+
+  /* Deployment config shape: valid defaults, JSON-pure, duplicate stripped */
+  const withDeployment = structuredClone(looky) as typeof looky & { deployment?: unknown; deploymentHistory?: unknown[] };
+  withDeployment.deployment = {
+    provider: "vercel",
+    github: { branch: "main", repositoryName: "katch-looky-cakes", repositoryUrl: "https://github.com/katch-agency/katch-looky-cakes" },
+    status: "live",
+    productionUrl: "https://mock-looky-cakes.vercel.app",
+    lastDeployedAt: new Date().toISOString(),
+    lastCommitId: "mock-abc123",
+    lastCommitMessage: "Initial Katch Studio deployment",
+    lastContentHash: f1,
+    lastPageHashes: hashes,
+  };
+  withDeployment.deploymentHistory = [
+    { id: "h1", provider: "vercel", status: "live", commitId: "mock-abc123", commitMessage: "Initial Katch Studio deployment", url: "https://mock-looky-cakes.vercel.app", at: new Date().toISOString() },
+  ];
+  assert(deepEqual(withDeployment, JSON.parse(JSON.stringify(withDeployment))), "project with deployment attached is JSON-pure (no undefined)");
+
+  const copy = duplicateProject(withDeployment as typeof looky);
+  assert(!copy.deployment && !copy.deploymentHistory, "duplicated project starts deployment-free (fresh site)");
+
+  /* Fresh projects carry no deployment key */
+  const fresh = createProjectFromTemplate({ templateId: "tpl-rest-elegant", name: "Fresh", client: "", language: "en" });
+  assert(!("deployment" in fresh), "new projects have no deployment field until deployed");
+}
+
 console.log(`\n${failures === 0 ? "ALL CHECKS PASSED" : failures + " CHECKS FAILED"}`);
 process.exit(failures === 0 ? 0 : 1);

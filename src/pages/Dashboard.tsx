@@ -14,6 +14,7 @@ import { useStore } from "@/app/store";
 import { useToast } from "@/app/toast";
 import { Button } from "@/components/ui/ui";
 import { StatusBadge } from "@/components/ui/EmptyState";
+import DeployBadge from "@/features/deploy/DeployBadge";
 import { LogoFull } from "@/components/layout/Logo";
 import { TEMPLATES } from "@/data/templates";
 import { getCategory } from "@/data/features";
@@ -198,7 +199,10 @@ export default function Dashboard() {
                         </td>
                         <td className="td hidden text-ink-muted sm:table-cell">{cat?.label ?? "—"}</td>
                         <td className="td">
-                          <StatusBadge status={p.status} />
+                          <div className="flex items-center gap-1.5">
+                            <StatusBadge status={p.status} />
+                            <DeployBadge project={p} />
+                          </div>
                         </td>
                         <td className="td hidden whitespace-nowrap text-ink-muted sm:table-cell">
                           {timeLabel(p.updatedAt)}

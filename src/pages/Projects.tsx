@@ -6,6 +6,7 @@ import { useToast } from "@/app/toast";
 import { Button } from "@/components/ui/ui";
 import { ConfirmDialog } from "@/components/ui/Modal";
 import { StatusBadge } from "@/components/ui/EmptyState";
+import DeployBadge from "@/features/deploy/DeployBadge";
 import { WEBSITE_CATEGORIES } from "@/data/features";
 import { PROJECT_STATUSES } from "@/types";
 import { STATUS_META } from "@/data/status";
@@ -209,7 +210,10 @@ export default function Projects() {
                       </td>
                       <td className="td text-ink-muted">{tpl?.name ?? "Custom"}</td>
                       <td className="td">
-                        <StatusBadge status={p.status} />
+                        <div className="flex items-center gap-1.5">
+                          <StatusBadge status={p.status} />
+                          <DeployBadge project={p} />
+                        </div>
                       </td>
                       <td className="td whitespace-nowrap text-ink-muted">{timeLabel(p.updatedAt)}</td>
                       <td className="td">

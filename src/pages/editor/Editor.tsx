@@ -15,6 +15,7 @@ import {
   Palette,
   PencilLine,
   Redo2,
+  Rocket,
   RotateCcw,
   Save,
   Search,
@@ -41,6 +42,8 @@ import { useStore } from "@/app/store";
 import { useToast } from "@/app/toast";
 import { Button } from "@/components/ui/ui";
 import { STATUS_META } from "@/data/status";
+import { DeployProvider } from "@/features/deploy/useDeployment";
+import DeploymentPanel from "@/features/deploy/DeploymentPanel";
 import type { DeviceMode, ProjectStatus } from "@/types";
 import { PROJECT_STATUSES } from "@/types";
 import { cn } from "@/utils/helpers";
@@ -58,6 +61,7 @@ const INSPECTOR_TABS: { id: InspectorTab; label: string; icon: React.ComponentTy
   { id: "brand", label: "Brand", icon: Palette },
   { id: "features", label: "Features", icon: ToggleRight },
   { id: "seo", label: "SEO", icon: Search },
+  { id: "deploy", label: "Deploy", icon: Rocket },
 ];
 
 const DEVICES: { id: DeviceMode; label: string; icon: React.ComponentType<{ className?: string }>; width?: number }[] = [
@@ -187,8 +191,9 @@ function EditorInner({ projectId }: { projectId: string }) {
   const deviceWidth = device === "desktop" ? undefined : DEVICES.find((d) => d.id === device)?.width;
 
   return (
-    <EditorUIContext.Provider value={ui}>
-      <div className="flex h-full min-h-0 flex-col">
+    <DeployProvider>
+      <EditorUIContext.Provider value={ui}>
+        <div className="flex h-full min-h-0 flex-col">
         {/* ================= Top bar ================= */}
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface-1/70 px-3 backdrop-blur md:px-4">
           <Link to="/projects" className="btn-icon shrink-0" aria-label="Back to projects">
@@ -446,6 +451,7 @@ function EditorInner({ projectId }: { projectId: string }) {
                 {tab === "brand" && <BrandPanel />}
                 {tab === "features" && <FeaturesPanel />}
                 {tab === "seo" && <SeoPanel />}
+                {tab === "deploy" && <DeploymentPanel />}
               </div>
             </aside>
           )}
@@ -491,6 +497,7 @@ function EditorInner({ projectId }: { projectId: string }) {
                       {tab === "brand" && <BrandPanel />}
                       {tab === "features" && <FeaturesPanel />}
                       {tab === "seo" && <SeoPanel />}
+                      {tab === "deploy" && <DeploymentPanel />}
                     </div>
                   </div>
                 </div>
@@ -500,9 +507,10 @@ function EditorInner({ projectId }: { projectId: string }) {
         </div>
 
         <AddSectionModal open={addSectionOpen} onClose={() => setAddSectionOpen(false)} />
-        <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} />
+        <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} onOpenDeployment={() => { setTab("deploy"); setExportOpen(false); }} />
       </div>
     </EditorUIContext.Provider>
+    </DeployProvider>
   );
 }
 

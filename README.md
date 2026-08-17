@@ -82,19 +82,27 @@ configuration + resolved-structure export, RTL/Arabic websites, demo data,
   verified by building it: `npm install && npm run build` passes) · ✅ template lifecycle
   (duplicate / create-from-project / delete custom) · ✅ share-for-review link · ✅ Sentry
   error reporting (env-gated via `VITE_SENTRY_DSN`) · ✅ PWA (install + offline shell + updates)
-- Next phase: automated deployment (generated project → GitHub → Vercel), client feedback &
-  approval on review links, Google sign-in with per-member roles, AI suggestions, Firebase
-  Storage for large asset libraries.
+- ✅ **Automated deployment** (editor **Deploy** tab): generate → GitHub repository (private by
+  default) → build on **Vercel or Netlify** → production URL, with deployment history, logs,
+  staged retries, "Changes detected → Deploy Changes" updates, and a secure server-side API
+  (`server/` locally, `api/index.js` on Vercel). Development runs on a clearly-labelled mock
+  backend; production activation is server-side env vars — see `docs/DEPLOY.md`.
+- Next phase: client feedback & approval on review links, custom domains for deployed sites,
+  Google sign-in with per-member roles, AI suggestions, Firebase Storage for large asset
+  libraries.
 
 ## Running it
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173
-npm run build      # production build (tsc + vite)
+npm run dev         # http://localhost:5173 (studio only — deployment tab needs the API too)
+npm run dev:all     # studio + deployment API together (mock mode until credentials are set)
+npm run server      # deployment API alone on :8787
+npm run build       # production build (tsc + vite)
 npm run typecheck
-npm run test:data  # data pipeline smoke test (demo data, cloning, duplication…)
-npm run test:render# mounts the real app in jsdom and walks every route
+npm run test:data   # data pipeline smoke test (demo data, cloning, duplication, deployment logic…)
+npm run test:render # mounts the real app in jsdom and walks every route (incl. deploy lifecycle)
+npm run test:server # deployment API lifecycle over real HTTP (mock mode)
 ```
 
 ## Demo data

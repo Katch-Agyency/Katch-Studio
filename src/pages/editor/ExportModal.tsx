@@ -29,7 +29,15 @@ import { downloadFile, slugify } from "@/utils/helpers";
    is clearly marked as the next phase.
    ============================================================ */
 
-export default function ExportModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function ExportModal({
+  open,
+  onClose,
+  onOpenDeployment,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onOpenDeployment?: () => void;
+}) {
   const { project } = useEditor();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -209,8 +217,8 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
           )}
           <div className="rounded-lg border border-line bg-surface-0/50 p-3.5 text-[12.5px] leading-relaxed text-ink-muted">
             <strong className="text-ink">Scope:</strong> the standalone project is generated from the same
-            renderer as this preview — what you see is what ships. Automated deployment (GitHub → Vercel)
-            for generated projects is the next phase.
+            renderer as this preview — what you see is what ships. One-click deployment (GitHub → Vercel/Netlify)
+            lives in the editor's <strong className="text-ink">Deploy</strong> tab.
           </div>
         </div>
       )}
@@ -220,36 +228,31 @@ export default function ExportModal({ open, onClose }: { open: boolean; onClose:
           <div className="rounded-xl border border-line bg-surface-0/50 p-4">
             <div className="flex items-center justify-between">
               <p className="flex items-center gap-2 text-[13.5px] font-semibold text-ink">
-                <TerminalSquare className="h-4 w-4 text-brand-hover" /> The generated project
+                <Rocket className="h-4 w-4 text-brand-hover" /> One-click deployment
               </p>
-              <Badge tone="brand">Ships today</Badge>
+              <Badge tone="brand">Live</Badge>
             </div>
             <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-muted">
-              The ZIP from the Export tab is a complete, runnable React/Vite app: the same website
-              layer as this preview, <code className="rounded bg-surface-2 px-1 py-0.5 text-[11px]">website.json</code> as the
-              single content source, npm scripts, and a handover README. Run it locally, hand it to a
-              developer, or deploy <code className="rounded bg-surface-2 px-1 py-0.5 text-[11px]">dist/</code> to any static host.
+              The editor's <strong className="text-ink">Deploy</strong> tab runs the full pipeline: generate
+              the React/Vite project → create a GitHub repository → push → build on Vercel or Netlify →
+              production URL. The project stays permanently linked to its repository and hosting, so
+              future edits are one “Deploy Changes” away.
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button size="sm" variant="primary" onClick={() => { onClose(); onOpenDeployment?.(); }}>
+                <Rocket className="h-3.5 w-3.5" /> Open Deployment
+              </Button>
+              <Button size="sm" onClick={onClose}>Close</Button>
+            </div>
           </div>
 
           <div className="rounded-xl border border-line bg-surface-0/50 p-4">
             <p className="flex items-center gap-2 text-[13.5px] font-semibold text-ink">
-              <Rocket className="h-4 w-4 text-brand-hover" /> Automated deployment
+              <TerminalSquare className="h-4 w-4 text-brand-hover" /> Manual handoff still available
             </p>
             <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-muted">
-              Next phase: push the generated project to GitHub → auto-build on Vercel/Netlify → share the
-              production URL, all from Katch Studio. The project stays linked here for maintenance and
-              updates.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-line bg-surface-0/50 p-4">
-            <p className="flex items-center gap-2 text-[13.5px] font-semibold text-ink">
-              <Rocket className="h-4 w-4 text-brand-hover" /> Client review portal
-            </p>
-            <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-muted">
-              The Share-for-review link is live today. Next phase adds client feedback and approval on
-              that link, synced back into this project.
+              The Export tab still produces the standalone ZIP for developers who prefer to deploy
+              themselves. The deployed repository contains exactly that generated project.
             </p>
           </div>
         </div>

@@ -24,6 +24,9 @@ interface EditorCtx {
   persisted: boolean;
   saveState: SaveState;
   update: (mutator: (draft: Project) => void) => void;
+  /** Persist deployment metadata WITHOUT polluting undo history or the
+   *  Saved/Unsaved indicator — deployment progress is not a content edit. */
+  updateDeploymentMeta: (mutator: (draft: Project) => void) => void;
   save: () => void;
   reset: () => void;
   /* Undo / redo history */
@@ -164,6 +167,32 @@ export function EditorProvider({
     [updateDraft, pushHistory]
   );
 
+  /* Deployment metadata — written often during a deploy (steps, ids, urls).
+     Kept out of undo history, doesn't flip the save indicator, and persists
+     silently to the draft so nothing is lost on navigation. */
+  const updateDeploymentMeta = useCallback(
+    (mutator: (draft: Project) => void) => {
+      cleanRef.current = false;
+      setProject((prev) => {
+        const next = structuredClone(prev);
+        if (!next.deployment) {
+          next.deployment = {
+            provider: "vercel",
+            github: { branch: "main" },
+            status: "not-deployed",
+          };
+        }
+        mutator(next);
+        return next;
+      });
+      if (timer.current) window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => {
+        updateDraft(latest.current);
+      }, AUTOSAVE_MS);
+    },
+    [updateDraft]
+  );
+
   const save = useCallback(() => {
     try {
       setSaveState("saving");
@@ -203,6 +232,7 @@ export function EditorProvider({
       persisted: Boolean(saved),
       saveState,
       update,
+      updateDeploymentMeta,
       save,
       reset,
       canUndo: pastRef.current.length > 0,
@@ -211,7 +241,7 @@ export function EditorProvider({
       redo,
     }),
     // historyTick re-renders consumers when history changes
-    [project, saved, saveState, update, save, reset, undo, redo, historyTick]
+    [project, saved, saveState, update, updateDeploymentMeta, save, reset, undo, redo, historyTick]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

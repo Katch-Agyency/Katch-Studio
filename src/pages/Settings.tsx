@@ -19,8 +19,9 @@ const ROADMAP = [
   { label: "Template lifecycle — duplicate, create from project, delete custom", status: "Live" },
   { label: "Client review link (read-only preview, shareable on any device)", status: "Live" },
   { label: "Sentry error monitoring (env-gated via VITE_SENTRY_DSN)", status: "Live" },
-  { label: "Automated deployment (generated project → GitHub → Vercel)", status: "Next phase" },
+  { label: "Automated deployment (GitHub → Vercel/Netlify → production URL, redeploys)", status: "Live" },
   { label: "Client feedback & approval on the review link", status: "Next phase" },
+  { label: "Custom domains for deployed sites", status: "Next phase" },
   { label: "Team accounts with Google sign-in & per-member roles", status: "Next phase" },
   { label: "AI content & structure suggestions", status: "Next phase" },
 ];
