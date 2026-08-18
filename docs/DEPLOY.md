@@ -55,15 +55,31 @@ All credentials are **server-side environment variables only**. They are read by
 ### 1. GitHub (choose one)
 
 **Option A — GitHub App (recommended).** GitHub → Settings → Developer settings → GitHub Apps → New GitHub App, then:
-* Repository permissions: **Contents (Read & write)**, **Administration (Read & write)**, **Metadata (Read)**.
-* Generate a private key, note the App ID and the slug from the app's public page.
+* Repository permissions: **Contents (Read & write)**, **Administration (Read & write)**, **Metadata (Read)** (least privilege — exactly what repo creation + pushes need).
+* Generate a private key, note the **App ID** (numeric) and the **slug** from the app's public page.
 * Install the app on your account/organization (the studio's "Connect GitHub" button links to the installation page automatically once `GITHUB_APP_SLUG` is set).
 
 ```env
-GITHUB_APP_ID=
-GITHUB_APP_SLUG=
-GITHUB_APP_PRIVATE_KEY=-----BEGIN RSA PRIVATE KEY----- …
+GITHUB_APP_ID=123456
+# BARE slug only — the tail of the app URL (https://github.com/apps/katch-studio-projects → katch-studio-projects).
+# A full URL is auto-normalized at server start, but store the bare form.
+GITHUB_APP_SLUG=katch-studio-projects
+# The ENTIRE .pem contents inside double quotes with REAL line breaks.
+# Single-line keys with literal \n text are also accepted (normalized automatically).
+GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA... (every line from the .pem file)
+-----END RSA PRIVATE KEY-----"
 ```
+
+> ⚠️ **Key rotation:** generating a new private key on the GitHub App invalidates every previous key. Update `.env` AND the Vercel environment variables with the same current key **together**, then restart the server / redeploy.
+
+> **Windows tip — the no-paste alternative.** If the multi-line env var keeps misbehaving (truncation, quoting, an old `setx` value shadowing the file), store the downloaded `.pem` somewhere on disk and add `GITHUB_APP_PRIVATE_KEY_FILE=H:\path\to\key.pem` to `.env`. The server reads the key straight from the file — it takes precedence over `GITHUB_APP_PRIVATE_KEY`, needs no admin rights, and cannot be truncated. On Vercel, file paths don't exist: keep using the env var there (the dashboard handles multi-line values fine).
+
+> **Verify credentials anytime (safe, read-only, no secrets printed):**
+> ```powershell
+> node scripts/diagnose-github.mjs     # full local + live GitHub/Vercel/Netlify check
+> npm run test:github-auth             # automated test matrix (live parts run when credentials exist)
+> ```
 
 **Option B — fine-grained personal access token (quickest).** GitHub → Settings → Developer settings → Personal access tokens → Fine-grained → All repositories → Contents RW, Administration RW, Metadata RO.
 
@@ -111,3 +127,24 @@ Redeploy the studio after changing Vercel env vars — they are read at build/ru
 * One provider project per studio project: redeploys reuse the same repository and provider project so the production URL stays stable.
 * Rollback is *prepared*, not implemented: full deployment history with commit ids is stored (`deploymentHistory`), so a future rollback can restore any commit.
 * Custom domains: the model stores the production URL cleanly; a future phase can add domain aliasing (Vercel/Netlify API) on top.
+
+## Troubleshooting — GitHub authentication
+
+The API classifies every GitHub failure into a safe error `code` (shown in the UI) while the technical detail stays in the server log. `GET /api/github/connection` (or the diagnostic script) tells you exactly which case you are in:
+
+| Error code | Meaning | Fix |
+|---|---|---|
+| `github-key-invalid` | Private key missing, truncated, or malformed PEM (server could not even sign a JWT) | Re-paste the complete `.pem` contents into `GITHUB_APP_PRIVATE_KEY` (double quotes, real line breaks), restart the server |
+| `github-key-invalid` + `no-footer` in the server console | Only the first key line is being read | See the **key shape** report the server now prints at boot — it names the cause: (a) unquoted multi-line paste, (b) duplicate definitions, or (c) an OS-level variable shadowing the file |
+| Windows/system env var `GITHUB_APP_PRIVATE_KEY` exists | dotenv **never overrides** an existing OS variable — the OS value wins even when `.env` is correct (a leftover `setx` value is truncated at 1024 chars → `no-footer`) | `[Environment]::SetEnvironmentVariable("GITHUB_APP_PRIVATE_KEY", $null, "User")` in PowerShell (add `, "Machine"` with admin rights), close and reopen the terminal, restart the server |
+| Deleting the Machine-scope variable fails ("Requested registry access is not allowed") | PowerShell isn't elevated | Either run PowerShell as administrator, or skip deleting entirely: set `GITHUB_APP_PRIVATE_KEY_FILE=<path to the .pem>` in `.env` — it takes precedence and is immune to shadowing |
+| Server boots in mock with *"no provider token was found"* even though `VERCEL_TOKEN` is in `.env` | (a) an OS-level `VERCEL_TOKEN` variable shadows the file (dotenv never overrides OS vars — even an empty one), (b) `VERCEL_TOKEN` is defined twice and the last definition is empty, (c) the token line is missing from the repo-root `.env` | The server console prints the exact cause at boot (`Provider token analysis` + `CAUSE:`). For (a): delete the OS variable, close/reopen all terminals, restart. For (b): keep exactly one definition. For (c): put it in the same folder as `package.json` |
+| Server boots in mock although the key comes from `GITHUB_APP_PRIVATE_KEY_FILE` | Old behavior — mode auto-detection only counted the env-var key | Fixed: auto-detection now counts a successfully read key file, so file-key + provider token resolves to live |
+| `github-app-id-invalid` | `GITHUB_APP_ID` is not numeric | Use the numeric App ID from the app's General settings page |
+| `github-auth-rejected` | GitHub rejected the signed JWT (401) — key revoked, from a different app, or App ID mismatch | Generate a fresh key on the GitHub App and update `.env` + Vercel together |
+| `github-app-forbidden` | GitHub returned 403 — app suspended/blocked | Check the app's settings page on github.com |
+| `github-app-not-installed` | App authenticates but has no installation | Open the `installUrl` from the response and Install (All repositories) |
+| `github-installation-missing` | Installation id no longer exists | Reinstall the app on your account |
+| `provider-unreachable` | Network problem reaching GitHub/Vercel/Netlify | Check internet access and retry |
+
+`.env` is read only at server start — after any fix: restart (`Ctrl+C`, `npm run server`), re-check `/api/github/connection`, then mirror the same values into Vercel and redeploy.

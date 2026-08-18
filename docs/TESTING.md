@@ -16,6 +16,7 @@ npm run build            # tsc + vite build + copy-404; "✓ SPA fallback create
 npm run test:data        # must print "ALL CHECKS PASSED"
 npm run test:render      # must print "ALL RENDER CHECKS PASSED" — run twice, both must pass
 npm run test:server      # deployment API lifecycle over real HTTP (mock) — "ALL SERVER CHECKS PASSED"
+npm run test:github-auth # GitHub auth matrix A–I (pure always; live parts when creds exist)
 npm run test:scaffold    # generates /tmp/ks-scaffold; then build it by hand (see §4)
 npm audit                # must print "found 0 vulnerabilities"
 ```
@@ -38,6 +39,7 @@ What each suite covers:
 | `test:data` | All 20 templates resolve; every project factory output is **JSON-pure** (no `undefined` fields — the bug that broke Firestore sync, group 11); ZIP config package round-trip (group 12); scaffold assembly 31 files (group 12); template lifecycle round-trip: theme + content + pages + features + no orphan refs (group 13); deployment logic: repo naming, fingerprints, commit messages, config shape (group 14). |
 | `test:render` | Full jsdom render of Dashboard, Projects, Templates, New Project wizard, Editor (layers/inspector/undo/redo/variants), Export modal (scaffold/share/save-as-template), preview route, **Deploy tab full lifecycle** (connect → failure → retry → live → changes → redeploy, group 13), runtime error capture. |
 | `test:server` | Boots the deployment API (mock) and drives the lifecycle over real HTTP: health honesty, GitHub connect, repo creation/reuse/suffix, push + validation, Vercel & Netlify deploy → live with URLs, redeploy, simulated build failure + retry, friendly errors. |
+| `test:github-auth` | GitHub App auth matrix A–I: missing/truncated/escaped-newline/multiline key normalization + validation, slug normalization, JWT claims (RS256, iss, ≤600s lifetime, clock skew), classified errors (`github-key-invalid`, `github-app-id-invalid`, `github-auth-rejected`). Live parts (wrong App ID → 401 rejection, real auth, installation detection, repo access via installation token) run automatically when `GITHUB_APP_ID`/`GITHUB_APP_PRIVATE_KEY` exist in the environment or `--env` file; otherwise they are reported as skipped (CI-safe). |
 | `test:scaffold` | Generates the standalone client project from the demo (Looky Cakes). |
 | `npm audit` | Dependency vulnerabilities (prod + dev). |
 
@@ -140,4 +142,5 @@ Checks: `<title>` matches the project name; all pages/sections render; images lo
 3. `test:data` group 11 failure = an `undefined` value is being written into project data (Firestore will reject it). Find the field, write it conditionally.
 4. `test:render` failure = a real UI regression — the checks mirror the user flows above.
 5. Build-time "FIREBASE ENV MISSING" = env vars not set for that environment (local `.env` or Vercel). The app still works in localStorage mode; deployed sync just won't.
-6. When in doubt, run the full suite — it takes ~2 minutes and catches the 13 classes of regressions above.
+6. GitHub connection failing? Run `node scripts/diagnose-github.mjs` (safe, read-only, prints the exact problem + fix) and `npm run test:github-auth`. Error codes are classified — see `docs/DEPLOY.md` → Troubleshooting.
+7. When in doubt, run the full suite — it takes ~2 minutes and catches the 13 classes of regressions above.

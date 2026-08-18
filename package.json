@@ -22,6 +22,7 @@
     "pretest:render": "node scripts/generate-catalogue.mjs",
     "test:render": "node scripts/render-test.mjs",
     "test:server": "node scripts/server-test.mjs",
+    "test:github-auth": "node scripts/github-auth-test.mjs",
     "test:scaffold": "node scripts/scaffold-verify.mjs"
   },
   "dependencies": {

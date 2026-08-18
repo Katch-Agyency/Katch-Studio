@@ -13,6 +13,7 @@
 import { createSign } from "node:crypto";
 import { ApiError, request } from "./http.mjs";
 import { isValidRepoName, normalizeRepoName, repoMarker, repoMatchesMarker } from "./normalize.mjs";
+import { appInstallUrl, normalizePrivateKey, safeCredentialSummary, validatePrivateKey } from "./credentials.mjs";
 import { serverConfig } from "../config.mjs";
 
 const GITHUB_API = "https://api.github.com";
@@ -30,17 +31,67 @@ export class GithubBackend {
     return "none";
   }
 
-  /** Short-lived (10 min) signed JWT for GitHub App authentication */
+  /** Short-lived (10 min) signed JWT for GitHub App authentication.
+   *  The key is validated BEFORE signing — an invalid key throws a
+   *  classified, user-safe error instead of an opaque crash. */
   appJwt() {
+    const appId = String(this.config.appId ?? "");
+    if (!/^\d+$/.test(appId)) {
+      throw new ApiError(
+        500,
+        "github-app-id-invalid",
+        "GITHUB_APP_ID must be the numeric App ID shown on the GitHub App settings page.",
+        "GITHUB_APP_ID is missing or not numeric (value never logged)."
+      );
+    }
+
+    const key = normalizePrivateKey(this.config.appPrivateKey);
+    const check = validatePrivateKey(key);
+    if (!check.ok) {
+      /* Booleans + classification only — the key itself is never logged. */
+      console.error("[deploy] GitHub App private key rejected:", {
+        ...safeCredentialSummary(this.config),
+        reason: check.reason,
+      });
+      throw new ApiError(
+        500,
+        "github-key-invalid",
+        "The GitHub App private key is invalid or malformed. Check GITHUB_APP_PRIVATE_KEY in the server environment — it must be the complete PEM (BEGIN and END lines, every line between) — then restart the server.",
+        `GitHub App private key ${check.reason}.`
+      );
+    }
+
     const now = Math.floor(Date.now() / 1000);
     const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString("base64url");
-    const payload = Buffer.from(
-      JSON.stringify({ iat: now - 60, exp: now + 600, iss: this.config.appId })
-    ).toString("base64url");
-    const signature = createSign("RSA-SHA256")
-      .update(`${header}.${payload}`)
-      .sign(this.config.appPrivateKey, "base64url");
-    return `${header}.${payload}.${signature}`;
+    /* iat: 60s clock-skew buffer · exp: GitHub's maximum JWT lifetime is
+       10 minutes (exp − iat ≤ 600) — iat − 60 + 600 = now + 540s. */
+    const iat = now - 60;
+    const exp = iat + 600;
+    const payload = Buffer.from(JSON.stringify({ iat, exp, iss: appId })).toString("base64url");
+    try {
+      const signature = createSign("RSA-SHA256")
+        .update(`${header}.${payload}`)
+        .sign(key, "base64url");
+      return `${header}.${payload}.${signature}`;
+    } catch (err) {
+      console.error("[deploy] GitHub App JWT signing failed:", err);
+      throw new ApiError(
+        500,
+        "github-key-invalid",
+        "The GitHub App private key could not be used to sign the request. Generate a fresh key on the GitHub App, update GITHUB_APP_PRIVATE_KEY, then restart the server.",
+        "JWT signing failed for the configured key."
+      );
+    }
+  }
+
+  /** Shared classification for GitHub auth failures — user-safe copy only. */
+  authRejectedError() {
+    return new ApiError(
+      401,
+      "github-auth-rejected",
+      "GitHub rejected the app credentials. The private key is likely revoked or does not match GITHUB_APP_ID — generate a fresh key on the GitHub App and update the server environment (all environments together, since a new key invalidates every older one).",
+      "GitHub rejected the app JWT (401)."
+    );
   }
 
   async installationToken() {
@@ -59,11 +110,27 @@ export class GithubBackend {
       }
       installationId = String(installations[0].id);
     }
-    const { data } = await request(
-      `${GITHUB_API}/app/installations/${installationId}/access_tokens`,
-      { method: "POST", token: this.appJwt() }
-    );
-    return String(data?.token ?? "");
+    try {
+      const { data } = await request(
+        `${GITHUB_API}/app/installations/${installationId}/access_tokens`,
+        { method: "POST", token: this.appJwt() }
+      );
+      return String(data?.token ?? "");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.code === "github-key-invalid" || err.code === "github-app-id-invalid") throw err;
+        if (err.status === 401) throw this.authRejectedError();
+        if (err.status === 404) {
+          throw new ApiError(
+            400,
+            "github-installation-missing",
+            "The GitHub App installation was not found. Reinstall the app on your GitHub account, then retry.",
+            "Installation access-token endpoint returned 404."
+          );
+        }
+      }
+      throw err;
+    }
   }
 
   async token() {
@@ -91,8 +158,8 @@ export class GithubBackend {
       }
       const token = await this.token();
       const { data } = await request(`${GITHUB_API}/app`, { token });
-      const slug = this.config.appSlug ?? data?.slug ?? "";
-      const installUrl = slug ? `https://github.com/apps/${slug}/installations/new` : null;
+      const slug = this.config.appSlug || data?.slug || "";
+      const installUrl = appInstallUrl(slug);
       /* The installation account (org/user) is what owns the repositories */
       let account = null;
       try {
@@ -102,17 +169,42 @@ export class GithubBackend {
       } catch {
         /* account is cosmetic — never fail the connection check for it */
       }
-      return { connected: true, mode: "app", account, installUrl };
+      return {
+        connected: true,
+        mode: "app",
+        account,
+        installUrl,
+        app: { slug: slug || null },
+        installationRequired: false,
+      };
     } catch (err) {
-      if (err instanceof ApiError && (err.status === 400 || err.status === 403)) {
-        const slug = this.config.appSlug;
-        return {
-          connected: false,
-          mode: "app",
-          account: null,
-          installUrl: slug ? `https://github.com/apps/${slug}/installations/new` : null,
-          hint: "The Katch GitHub App is not installed on your GitHub account yet.",
-        };
+      if (err instanceof ApiError) {
+        /* classified credential errors pass through untouched */
+        if (err.code === "github-key-invalid" || err.code === "github-app-id-invalid" || err.code === "github-auth-rejected") {
+          throw err;
+        }
+        /* auth worked, the app just has no installation yet */
+        if (err.code === "github-app-not-installed") {
+          const slug = this.config.appSlug;
+          return {
+            connected: false,
+            mode: "app",
+            account: null,
+            installUrl: appInstallUrl(slug),
+            app: { slug: slug || null },
+            installationRequired: true,
+            hint: "The Katch GitHub App is not installed on your GitHub account yet.",
+          };
+        }
+        if (err.status === 401) throw this.authRejectedError();
+        if (err.status === 403) {
+          throw new ApiError(
+            403,
+            "github-app-forbidden",
+            "GitHub blocked access for this app. The GitHub App may be suspended — check its settings on github.com.",
+            "GitHub returned 403 for the app token."
+          );
+        }
       }
       throw err;
     }

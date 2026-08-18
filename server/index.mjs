@@ -37,7 +37,8 @@ import { VercelBackend } from "./lib/vercel.mjs";
 import { NetlifyBackend } from "./lib/netlify.mjs";
 import { mockProviders, resetMockState } from "./lib/mock.mjs";
 import { isValidRepoName, normalizeRepoName } from "./lib/normalize.mjs";
-import { hasGitHubCredentials, serverConfig } from "./config.mjs";
+import { inspectGithubKeyConfig, inspectProviderTokenConfig } from "./lib/credentials.mjs";
+import { envFacts, hasGitHubCredentials, modeFacts, serverConfig } from "./config.mjs";
 
 const PORT = Number(process.env.DEPLOY_API_PORT ?? 8787);
 
@@ -90,6 +91,20 @@ const routes = {
       github = await b.github.connection();
     } catch (err) {
       console.error("[deploy] github connection check failed:", err);
+      /* Still surface the install link when the slug is known — the
+       * connection check can fail on a broken key while the app itself
+       * is perfectly installable. */
+      if (b.mode === "live" && b.github.authMode === "app") {
+        const slug = serverConfig.github.appSlug;
+        if (slug) {
+          github = {
+            connected: false,
+            account: null,
+            mode: "app",
+            installUrl: `https://github.com/apps/${slug}/installations/new`,
+          };
+        }
+      }
     }
     return {
       ok: true,
@@ -275,7 +290,126 @@ export async function createHandler(req, res) {
   }
 }
 
-/* ---------- Local entry ---------- */
+/* ---------- Boot-time provider-token shape check (local only, secret-free) ---------- */
+
+function logProviderTokenCause() {
+  const facts = inspectProviderTokenConfig({
+    rawEnvText: envFacts.rawEnvText,
+    osEnv: envFacts.osEnvBeforeDotenv,
+  });
+  console.log("[Katch Studio] Provider token analysis (structure only, no secrets):", facts);
+
+  const shadowed = [facts.vercel, facts.netlify].find((f) => f.osEnvShadowing);
+  if (shadowed) {
+    const name = shadowed === facts.vercel ? "VERCEL_TOKEN" : "NETLIFY_AUTH_TOKEN";
+    console.log(
+      `[Katch Studio] CAUSE: an OS-level environment variable named ${name} exists (${shadowed.osEnvLength} chars) and SHADOWS the .env file — dotenv never overrides OS variables, even an EMPTY one.`
+    );
+    console.log(`[Katch Studio]   Fix — delete it in PowerShell, close and reopen ALL terminals, restart the server:`);
+    console.log(`[Katch Studio]   [Environment]::SetEnvironmentVariable("${name}", $null, "User")`);
+    return;
+  }
+
+  const lastEmpty = [facts.vercel, facts.netlify].find((f) => f.lastDefinitionEmpty);
+  if (lastEmpty) {
+    const name = lastEmpty === facts.vercel ? "VERCEL_TOKEN" : "NETLIFY_AUTH_TOKEN";
+    const line = lastEmpty.definitionLines[lastEmpty.definitionLines.length - 1];
+    console.log(
+      `[Katch Studio] CAUSE: the LAST ${name} definition in .env (line ${line}) is empty — dotenv keeps only the LAST definition, so it discards your real token.`
+    );
+    console.log("[Katch Studio]   Fix — delete the empty definition line(s), keep exactly one line with the real token, restart.");
+    return;
+  }
+
+  /* the line physically exists with a value, but the parsed environment
+     has none → an unterminated quoted block ABOVE it swallowed it */
+  const swallow = [facts.vercel, facts.netlify].find((f) =>
+    f.definedInFile && !f.lastDefinitionEmpty && !(f === facts.vercel ? serverConfig.vercel.token : serverConfig.netlify.token)
+  );
+  if (swallow) {
+    const name = swallow === facts.vercel ? "VERCEL_TOKEN" : "NETLIFY_AUTH_TOKEN";
+    console.log(
+      `[Katch Studio] CAUSE: the ${name} line EXISTS in .env but the server's environment has no value for it — an unterminated quoted block above it (most likely the GITHUB_APP_PRIVATE_KEY block missing its closing double quote) is swallowing every line below it.`
+    );
+    console.log(`[Katch Studio]   Fix — make sure the quoted key block ends with a closing " on its own line, save, restart.`);
+    return;
+  }
+
+  const dup = [facts.vercel, facts.netlify].find((f) => f.duplicateDefinitions > 1);
+  if (dup) {
+    const name = dup === facts.vercel ? "VERCEL_TOKEN" : "NETLIFY_AUTH_TOKEN";
+    console.log(
+      `[Katch Studio] CAUSE: ${name} is defined ${dup.duplicateDefinitions} times in .env (lines ${dup.definitionLines.join(", ")}) — the last one wins. Keep exactly one definition.`
+    );
+    return;
+  }
+
+  if (!facts.vercel.definedInFile && !facts.netlify.definedInFile) {
+    console.log(
+      "[Katch Studio] CAUSE: neither VERCEL_TOKEN nor NETLIFY_AUTH_TOKEN is defined in the .env the server reads (the repo-root .env — same folder as package.json)."
+    );
+    console.log("[Katch Studio]   Fix — make sure the token line lives in H:\\...\\katch-studio\\.env (not in a subfolder like server\\.env), then restart.");
+    return;
+  }
+
+  console.log(
+    "[Katch Studio] CAUSE unclear from the file shape alone — run `node scripts/diagnose-github.mjs` for the full forensics (it checks the exact same file and reports line-by-line)."
+  );
+}
+
+/* ---------- Boot-time credential shape check (local only, secret-free) ---------- */
+
+function logGitHubKeyBootSummary() {
+  const g = serverConfig.github;
+  if (!g.appId && !g.pat) return;
+  const inMock = serverConfig.mode === "mock";
+
+  const summary = {
+    appIdConfigured: Boolean(g.appId && /^\d+$/.test(String(g.appId))),
+    appSlugConfigured: Boolean(g.appSlug),
+    privateKeyConfigured: Boolean(g.appPrivateKey),
+    privateKeyFormatValid: Boolean(g.appPrivateKey && g.appPrivateKey.includes("-----END")),
+    keySource: g.appPrivateKeyFile ? "file" : "env",
+  };
+  if (summary.privateKeyFormatValid) {
+    console.log(
+      `[Katch Studio] GitHub App key: valid PEM (source: ${summary.keySource})${inMock ? " — ignored: server is in mock mode" : ""}. Booleans only:`,
+      summary
+    );
+    return;
+  }
+
+  const facts = inspectGithubKeyConfig({
+    rawEnvText: envFacts.rawEnvText,
+    osEnv: envFacts.osEnvBeforeDotenv,
+  });
+  console.log(
+    `[Katch Studio] GitHub App key problem${inMock ? " (server is in mock mode — nothing real will be attempted)" : ""} (booleans only, no secrets):`,
+    { ...summary, ...facts }
+  );
+
+  if (facts.osEnvShadowing) {
+    console.log(
+      `[Katch Studio] CAUSE: a Windows/system environment variable named GITHUB_APP_PRIVATE_KEY exists (${facts.osEnvLength} chars) and SHADOWS the .env file — dotenv never overrides OS variables. Delete it (or use the file source, which needs no admin), then restart:`
+    );
+    console.log('[Katch Studio]   PowerShell (user scope): [Environment]::SetEnvironmentVariable("GITHUB_APP_PRIVATE_KEY", $null, "User")');
+    console.log('[Katch Studio]   Machine scope needs an ADMIN PowerShell (add "Machine"); otherwise skip it and use:');
+    console.log('[Katch Studio]   GITHUB_APP_PRIVATE_KEY_FILE=<path to the downloaded .pem>  in .env — takes precedence, immune to shadowing');
+    console.log('[Katch Studio]   (close and reopen all terminals afterwards, then restart the server)');
+  } else if (facts.duplicateDefinitions > 0) {
+    console.log(
+      `[Katch Studio] CAUSE: GITHUB_APP_PRIVATE_KEY is defined ${facts.duplicateDefinitions} times in .env (lines ${facts.definitionLineNumbers.join(", ")}) — the LAST definition wins. Remove the broken definition(s) and restart.`
+    );
+  } else if (!facts.firstDefinitionQuoted) {
+    console.log(
+      `[Katch Studio] CAUSE: the key on line ${facts.definitionLineNumbers[0] ?? "?"} of .env is NOT wrapped in double quotes — only that single line is read (BEGIN without END). Wrap the entire key in "..." with real line breaks, then restart.`
+    );
+  } else {
+    console.log(
+      `[Katch Studio] CAUSE: the key block on line ${facts.definitionLineNumbers[0] ?? "?"} is quoted but still invalid — check for smart quotes, a missing closing quote, or a break inside the block. Re-paste the .pem contents cleanly, then restart.`
+    );
+  }
+}
 
 export function startServer(port = PORT) {
   const server = createServer(createHandler);
@@ -284,9 +418,26 @@ export function startServer(port = PORT) {
     console.log(`[Katch Studio] Deployment API listening on http://localhost:${port} (mode: ${mode})`);
     if (mode === "mock") {
       console.log("[Katch Studio] Development Mode — deployments are SIMULATED (no real GitHub/Vercel/Netlify calls).");
+      const explicit = modeFacts.explicit === "mock";
+      if (explicit) {
+        console.log("[Katch Studio] Why mock: DEPLOYMENT_MODE=mock is set explicitly. Set DEPLOYMENT_MODE=live (or remove the line) to use real APIs.");
+      } else if (modeFacts.githubOk && !modeFacts.providerOk) {
+        console.log(
+          "[Katch Studio] Why mock: GitHub credentials ARE configured, but no provider token was found — auto mode needs VERCEL_TOKEN (or NETLIFY_AUTH_TOKEN) too. Restore it in .env and restart."
+        );
+        logProviderTokenCause();
+      } else if (!modeFacts.githubOk && modeFacts.providerOk) {
+        console.log(
+          "[Katch Studio] Why mock: a provider token IS configured, but GitHub credentials were not detected (need GITHUB_APP_ID + a readable key/env file, or GITHUB_PAT)."
+        );
+      } else {
+        console.log("[Katch Studio] Why mock: no GitHub credentials and no provider token — auto mode falls back to mock.");
+      }
       console.log(`[Katch Studio] GitHub configured: ${hasGitHubCredentials() ? "yes (ignored in mock mode)" : "no"}`);
+      logGitHubKeyBootSummary();
     } else {
       console.log("[Katch Studio] Live mode — real GitHub/Vercel/Netlify APIs.");
+      logGitHubKeyBootSummary();
     }
   });
   return server;

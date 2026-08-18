@@ -453,9 +453,24 @@ export function DeployProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       const health = await apiRef.current.health();
+      /* A null response means the request fell through to a non-API page
+         (e.g. the SPA rewrite answered instead of the function) — treat it
+         exactly like an unreachable API. */
+      if (!health) {
+        throw new DeployApiError(
+          "The deployment API is unreachable. Start it locally with `npm run server` (or `npm run dev:all`), or check the deployment server logs.",
+          "unreachable"
+        );
+      }
       setBackend(health);
       setBackendError(null);
       const conn = await apiRef.current.githubConnection();
+      if (!conn) {
+        throw new DeployApiError(
+          "The deployment API is unreachable. Start it locally with `npm run server` (or `npm run dev:all`), or check the deployment server logs.",
+          "unreachable"
+        );
+      }
       setGithub({ connected: conn.connected, account: conn.account, installUrl: conn.installUrl });
     } catch (err) {
       setBackendError(err instanceof Error ? err.message : "The deployment API is unreachable.");

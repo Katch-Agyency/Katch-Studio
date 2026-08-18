@@ -22,6 +22,10 @@ export interface GithubConnection {
   mode: string;
   installUrl: string | null;
   hint?: string | null;
+  /** present when the app authenticates but has no installation yet */
+  installationRequired?: boolean;
+  /** metadata only — never credentials */
+  app?: { slug: string | null } | null;
 }
 
 export interface RepositoryInfo {
