@@ -8,33 +8,26 @@
     "node": ">=20"
   },
   "scripts": {
-    "predev": "node scripts/check-env.mjs && node scripts/generate-catalogue.mjs",
+    "export:sources": "node scripts/generate-export-sources.mjs",
+    "predev": "npm run export:sources",
     "dev": "vite",
-    "server": "node server/index.mjs",
-    "dev:all": "node scripts/dev-all.mjs",
-    "prebuild": "node scripts/check-env.mjs && node scripts/generate-catalogue.mjs",
+    "prebuild": "npm run export:sources",
     "build": "tsc --noEmit && vite build && node scripts/copy-404.mjs",
     "preview": "vite preview",
-    "pretypecheck": "node scripts/generate-catalogue.mjs",
     "typecheck": "tsc --noEmit",
-    "pretest:data": "node scripts/generate-catalogue.mjs",
     "test:data": "esbuild src/scripts/smoke.ts --bundle --platform=node --format=esm --alias:@=./src --loader:.jpg=dataurl --outfile=/tmp/katch-smoke.mjs && node /tmp/katch-smoke.mjs",
-    "pretest:render": "node scripts/generate-catalogue.mjs",
+    "pretest:render": "npm run export:sources",
     "test:render": "node scripts/render-test.mjs",
-    "test:server": "node scripts/server-test.mjs",
-    "test:github-auth": "node scripts/github-auth-test.mjs",
-    "test:scaffold": "node scripts/scaffold-verify.mjs"
+    "pretest:export": "npm run export:sources",
+    "test:export": "node scripts/export-test.mjs"
   },
   "dependencies": {
-    "dotenv": "^17.4.2",
     "firebase": "^12.17.1",
     "jszip": "^3.10.1",
     "lucide-react": "^0.441.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.18.2",
-    "tar": "^7.5.22",
-    "yazl": "^3.3.1"
+    "react-router-dom": "^7.18.2"
   },
   "devDependencies": {
     "@types/react": "^18.3.8",

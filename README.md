@@ -75,34 +75,19 @@ template duplication (custom templates), 20 templates incl. E-commerce & SaaS,
 configuration + resolved-structure export, RTL/Arabic websites, demo data,
 **Firestore sync (optional, env-gated — see `docs/FIREBASE.md`)**, **PWA install + offline shell**.
 
-**Roadmap status** (Settings → Architecture Roadmap):
-
-- ✅ Firestore sync (anonymous auth, env-gated) · ✅ standalone React/Vite project export
-  (**real code generation** — the ZIP is the actual client website, same renderer as the preview;
-  verified by building it: `npm install && npm run build` passes) · ✅ template lifecycle
-  (duplicate / create-from-project / delete custom) · ✅ share-for-review link · ✅ Sentry
-  error reporting (env-gated via `VITE_SENTRY_DSN`) · ✅ PWA (install + offline shell + updates)
-- ✅ **Automated deployment** (editor **Deploy** tab): generate → GitHub repository (private by
-  default) → build on **Vercel or Netlify** → production URL, with deployment history, logs,
-  staged retries, "Changes detected → Deploy Changes" updates, and a secure server-side API
-  (`server/` locally, `api/index.js` on Vercel). Development runs on a clearly-labelled mock
-  backend; production activation is server-side env vars — see `docs/DEPLOY.md`.
-- Next phase: client feedback & approval on review links, custom domains for deployed sites,
-  Google sign-in with per-member roles, AI suggestions, Firebase Storage for large asset
-  libraries.
+**Planned (architected, not implemented):** automated scaffold generation (`client-project/`
+React/Vite output), Firebase Auth with real accounts & team roles, Firebase Storage for assets,
+deployment pipeline, client portal, AI suggestions, template editing, Sentry monitoring.
 
 ## Running it
 
 ```bash
 npm install
-npm run dev         # http://localhost:5173 (studio only — deployment tab needs the API too)
-npm run dev:all     # studio + deployment API together (mock mode until credentials are set)
-npm run server      # deployment API alone on :8787
-npm run build       # production build (tsc + vite)
+npm run dev        # http://localhost:5173
+npm run build      # production build (tsc + vite)
 npm run typecheck
-npm run test:data   # data pipeline smoke test (demo data, cloning, duplication, deployment logic…)
-npm run test:render # mounts the real app in jsdom and walks every route (incl. deploy lifecycle)
-npm run test:server # deployment API lifecycle over real HTTP (mock mode)
+npm run test:data  # data pipeline smoke test (demo data, cloning, duplication…)
+npm run test:render# mounts the real app in jsdom and walks every route
 ```
 
 ## Demo data

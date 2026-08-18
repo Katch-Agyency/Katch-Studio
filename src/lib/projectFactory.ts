@@ -74,17 +74,13 @@ function buildSections(
   return types.map((type) => {
     const defaults = sectionDefaults(type, brand) as unknown as Record<string, unknown>;
     const override = contentOverrides[type] ?? {};
-    const instance: SectionInstance = {
+    return {
       id: uid(),
       type,
       hidden: false,
-      content: deepMerge(defaults, override) as SectionInstance["content"],
-    };
-    /* Only set `variant` when one exists — Firestore rejects documents
-       containing `undefined` field values. */
-    const variantId = variants[type];
-    if (variantId) instance.variant = variantId;
-    return instance;
+      variant: variants[type],
+      content: deepMerge(defaults, override),
+    } as SectionInstance;
   });
 }
 
@@ -167,16 +163,13 @@ export function createProjectFromTemplate(input: CreateProjectInput): Project {
 
   const now = new Date().toISOString();
   const baseTheme = themeFromPreset(tpl.themePresetId);
-  const theme: ThemeConfig = deepMerge(
-    deepMerge(baseTheme, tpl.theme ?? {}),
-    {
-      ...(input.theme ?? {}),
-      /* Arabic projects default to an Arabic typeface pair */
-      ...(input.language === "ar"
-        ? { fonts: { heading: "kufi", body: "kufi", arabic: "kufi" } }
-        : {}),
-    }
-  );
+  const theme: ThemeConfig = deepMerge(baseTheme, {
+    ...(input.theme ?? {}),
+    /* Arabic projects default to an Arabic typeface pair */
+    ...(input.language === "ar"
+      ? { fonts: { heading: "kufi", body: "kufi", arabic: "kufi" } }
+      : {}),
+  });
   const config: ProjectConfig = {
     projectInfo: info,
     brand,
@@ -198,8 +191,7 @@ export function createProjectFromTemplate(input: CreateProjectInput): Project {
 }
 
 /** Duplicate a project — copies template, sections, theme, pages and features;
- *  resets client-specific identifiers, keeps content as a starting point.
- *  Deployment linkage is NOT copied: a duplicate is a fresh site. */
+ *  resets client-specific identifiers, keeps content as a starting point. */
 export function duplicateProject(project: Project): Project {
   const copy = structuredClone(project);
   copy.id = uid();
@@ -210,7 +202,5 @@ export function duplicateProject(project: Project): Project {
   copy.createdAt = new Date().toISOString();
   copy.updatedAt = copy.createdAt;
   copy.createdFrom = project.createdFrom;
-  delete copy.deployment;
-  delete copy.deploymentHistory;
   return copy;
 }

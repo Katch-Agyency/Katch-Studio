@@ -51,75 +51,6 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   createdFrom: string; // template id
-  /** Deployment linkage — set once the project is deployed the first time */
-  deployment?: DeploymentConfig;
-  /** Ordered (newest first) record of every deployment attempt — rollback-ready */
-  deploymentHistory?: DeploymentRecord[];
-}
-
-/* ============================================================
-   Deployment — the project's permanent link to its GitHub
-   repository and hosting provider (Katch maintenance loop).
-   Contains NO secrets: only ids, names and URLs. Tokens live
-   server-side only.
-   ============================================================ */
-
-export type DeploymentProviderType = "vercel" | "netlify";
-
-export type DeploymentStatus =
-  | "not-deployed"
-  | "preparing"
-  | "generating"
-  | "github"
-  | "building"
-  | "deploying"
-  | "live"
-  | "failed";
-
-export interface DeploymentGithubInfo {
-  repositoryId?: string;
-  repositoryName?: string;
-  repositoryUrl?: string;
-  owner?: string;
-  branch: string;
-}
-
-export interface DeploymentConfig {
-  provider: DeploymentProviderType;
-  github: DeploymentGithubInfo;
-  /** Provider-side project/site id (Vercel project id / Netlify site id) */
-  providerProjectId?: string;
-  providerProjectName?: string;
-  /** The in-flight or latest deployment id on the provider */
-  deploymentId?: string;
-  status: DeploymentStatus;
-  /** Production URL — https://… once live */
-  productionUrl?: string;
-  /** Latest provider deployment URL (unique per deploy) */
-  previewUrl?: string;
-  /** Link to the provider's dashboard for this project/site */
-  providerDashboardUrl?: string;
-  /** ISO timestamp */
-  lastDeployedAt?: string;
-  lastCommitId?: string;
-  lastCommitMessage?: string;
-  /** Fingerprint of the content at the last successful deployment */
-  lastContentHash?: string;
-  /** Per-page fingerprints at the last deploy — used to localise commit messages */
-  lastPageHashes?: Record<string, string>;
-  error?: string;
-}
-
-export interface DeploymentRecord {
-  id: string;
-  provider: DeploymentProviderType;
-  status: "live" | "failed";
-  commitId?: string;
-  commitMessage?: string;
-  url?: string;
-  error?: string;
-  /** ISO timestamp */
-  at: string;
 }
 
 /* ---------- Template ---------- */
@@ -153,8 +84,6 @@ export interface WebsiteTemplate {
   defaultContent?: Partial<Record<SectionType, Record<string, unknown>>>;
   pages: { name: string; path: string; sections: SectionType[] }[];
   themePresetId: string;
-  /** Exact theme override (custom templates preserve their project's look) */
-  theme?: ThemeConfig;
   features: string[]; // feature ids enabled by default
   featured: boolean;
 }

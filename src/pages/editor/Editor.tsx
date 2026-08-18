@@ -8,14 +8,12 @@ import {
   Eye,
   Files,
   Layers,
-  LayoutTemplate,
   Loader2,
   Monitor,
   MoreHorizontal,
   Palette,
   PencilLine,
   Redo2,
-  Rocket,
   RotateCcw,
   Save,
   Search,
@@ -42,8 +40,6 @@ import { useStore } from "@/app/store";
 import { useToast } from "@/app/toast";
 import { Button } from "@/components/ui/ui";
 import { STATUS_META } from "@/data/status";
-import { DeployProvider } from "@/features/deploy/useDeployment";
-import DeploymentPanel from "@/features/deploy/DeploymentPanel";
 import type { DeviceMode, ProjectStatus } from "@/types";
 import { PROJECT_STATUSES } from "@/types";
 import { cn } from "@/utils/helpers";
@@ -61,7 +57,6 @@ const INSPECTOR_TABS: { id: InspectorTab; label: string; icon: React.ComponentTy
   { id: "brand", label: "Brand", icon: Palette },
   { id: "features", label: "Features", icon: ToggleRight },
   { id: "seo", label: "SEO", icon: Search },
-  { id: "deploy", label: "Deploy", icon: Rocket },
 ];
 
 const DEVICES: { id: DeviceMode; label: string; icon: React.ComponentType<{ className?: string }>; width?: number }[] = [
@@ -97,7 +92,7 @@ export default function EditorPage() {
 
 function EditorInner({ projectId }: { projectId: string }) {
   const { project, saveState, update, save, reset, canUndo, canRedo, undo, redo } = useEditor();
-  const { duplicateProject, saveProjectAsTemplate } = useStore();
+  const { duplicateProject } = useStore();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -179,21 +174,14 @@ function EditorInner({ projectId }: { projectId: string }) {
     }
   };
 
-  const onSaveAsTemplate = () => {
-    const template = saveProjectAsTemplate(project);
-    toast("success", `Saved as template “${template.name}”.`);
-    setMenuOpen(false);
-  };
-
   const status = project.status;
   const activePage = project.config.pages.find((p) => p.id === activePageId);
   const showPanels = mode === "edit";
   const deviceWidth = device === "desktop" ? undefined : DEVICES.find((d) => d.id === device)?.width;
 
   return (
-    <DeployProvider>
-      <EditorUIContext.Provider value={ui}>
-        <div className="flex h-full min-h-0 flex-col">
+    <EditorUIContext.Provider value={ui}>
+      <div className="flex h-full min-h-0 flex-col">
         {/* ================= Top bar ================= */}
         <header className="flex h-14 shrink-0 items-center gap-2 border-b border-line bg-surface-1/70 px-3 backdrop-blur md:px-4">
           <Link to="/projects" className="btn-icon shrink-0" aria-label="Back to projects">
@@ -320,9 +308,6 @@ function EditorInner({ projectId }: { projectId: string }) {
                   </button>
                   <button className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] text-ink hover:bg-surface-2" onClick={() => { onDuplicate(); setMenuOpen(false); }}>
                     <Copy className="h-3.5 w-3.5 text-ink-muted" /> Duplicate project
-                  </button>
-                  <button className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] text-ink hover:bg-surface-2" onClick={onSaveAsTemplate}>
-                    <LayoutTemplate className="h-3.5 w-3.5 text-ink-muted" /> Save as template
                   </button>
                   <button className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] text-ink hover:bg-surface-2" onClick={() => { reset(); setMenuOpen(false); }}>
                     <RotateCcw className="h-3.5 w-3.5 text-ink-muted" /> Discard changes
@@ -451,7 +436,6 @@ function EditorInner({ projectId }: { projectId: string }) {
                 {tab === "brand" && <BrandPanel />}
                 {tab === "features" && <FeaturesPanel />}
                 {tab === "seo" && <SeoPanel />}
-                {tab === "deploy" && <DeploymentPanel />}
               </div>
             </aside>
           )}
@@ -497,7 +481,6 @@ function EditorInner({ projectId }: { projectId: string }) {
                       {tab === "brand" && <BrandPanel />}
                       {tab === "features" && <FeaturesPanel />}
                       {tab === "seo" && <SeoPanel />}
-                      {tab === "deploy" && <DeploymentPanel />}
                     </div>
                   </div>
                 </div>
@@ -507,10 +490,9 @@ function EditorInner({ projectId }: { projectId: string }) {
         </div>
 
         <AddSectionModal open={addSectionOpen} onClose={() => setAddSectionOpen(false)} />
-        <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} onOpenDeployment={() => { setTab("deploy"); setExportOpen(false); }} />
+        <ExportModal open={exportOpen} onClose={() => setExportOpen(false)} />
       </div>
     </EditorUIContext.Provider>
-    </DeployProvider>
   );
 }
 

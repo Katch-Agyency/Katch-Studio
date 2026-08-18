@@ -14,16 +14,14 @@ import { downloadFile } from "@/utils/helpers";
    ============================================================ */
 
 const ROADMAP = [
-  { label: "Firebase Auth (anonymous) + Firestore sync", status: "Live" },
-  { label: "Standalone React/Vite project export (real code generation)", status: "Live" },
-  { label: "Template lifecycle — duplicate, create from project, delete custom", status: "Live" },
-  { label: "Client review link (read-only preview, shareable on any device)", status: "Live" },
-  { label: "Sentry error monitoring (env-gated via VITE_SENTRY_DSN)", status: "Live" },
-  { label: "Automated deployment (GitHub → Vercel/Netlify → production URL, redeploys)", status: "Live" },
-  { label: "Client feedback & approval on the review link", status: "Next phase" },
-  { label: "Custom domains for deployed sites", status: "Next phase" },
-  { label: "Team accounts with Google sign-in & per-member roles", status: "Next phase" },
-  { label: "AI content & structure suggestions", status: "Next phase" },
+  { label: "Firebase Auth + Firestore", status: "Planned" },
+  { label: "Automated scaffold generation (React/Vite export)", status: "Planned" },
+  { label: "Deployment pipeline (GitHub → Vercel/Netlify)", status: "Planned" },
+  { label: "Client review portal", status: "Planned" },
+  { label: "AI content & structure suggestions", status: "Planned" },
+  { label: "Team collaboration & roles", status: "Planned" },
+  { label: "Template create / edit / archive", status: "Next phase" },
+  { label: "Sentry error monitoring", status: "Planned" },
 ];
 
 export default function Settings() {

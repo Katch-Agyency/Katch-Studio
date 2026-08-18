@@ -9,7 +9,7 @@ import type { DeviceMode } from "@/types";
 
 export type EditorMode = "edit" | "preview";
 
-export type InspectorTab = "design" | "content" | "brand" | "features" | "seo" | "deploy";
+export type InspectorTab = "design" | "content" | "brand" | "features" | "seo";
 
 export interface EditorUIState {
   activePageId: string;

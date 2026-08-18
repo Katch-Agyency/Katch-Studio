@@ -83,8 +83,8 @@ export function validateProject(p: unknown): string | null {
 
 /* ---------- Files ---------- */
 
-export function downloadFile(filename: string, content: string | Blob, mime = "application/json") {
-  const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
+export function downloadFile(filename: string, content: string, mime = "application/json") {
+  const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

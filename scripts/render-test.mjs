@@ -16,9 +16,7 @@ await build({
   format: "esm",
   outfile: "/tmp/katch-render-entry.mjs",
   alias: { "@": path.join(root, "src") },
-  /* "file" loader (not dataurl): keeps project JSON in localStorage small so the
-     5 MB jsdom quota never trips — images are just URL strings in the tests. */
-  loader: { ".jpg": "file", ".png": "file" },
+  loader: { ".jpg": "dataurl", ".png": "dataurl" },
   /* Firebase is lazily imported only when VITE_FIREBASE_* is configured —
      keep it out of the test bundle (and it is never exercised in tests). */
   external: ["firebase", "firebase/*"],
@@ -58,108 +56,6 @@ const ok = (cond, label) => {
     failures++;
     console.error("  ✗", label);
   }
-};
-
-/* ============================================================
-   Deployment API stub — an in-memory mock of the real backend
-   (same contract as server/index.mjs in mock mode), so the
-   Deploy tab's full lifecycle can be exercised in jsdom:
-   connect → repo → push → provider → poll → live/failed.
-   Failure injection: repository names containing "fail" fail
-   the build on the second status poll (mirrors the server).
-   ============================================================ */
-import { gunzipSync } from "node:zlib";
-const deployState = { connected: false, repos: new Map(), deploys: new Map(), seq: 0 };
-const stubReadBody = (b) => {
-  if (b == null) return {};
-  const buf = typeof b === "string" ? Buffer.from(b, "utf8") : Buffer.from(b);
-  try {
-    return JSON.parse(buf.toString("utf8"));
-  } catch {
-    return JSON.parse(gunzipSync(buf).toString("utf8"));
-  }
-};
-const stubJson = (data, status = 200) => ({ ok: status < 400, status, json: async () => data });
-globalThis.fetch = async (url, init = {}) => {
-  const path = String(url).replace(/^https?:\/\/[^/]+/, "");
-  const method = String(init.method ?? "GET").toUpperCase();
-  const body = stubReadBody(init.body);
-
-  if (path === "/api/health") {
-    return stubJson({
-      ok: true,
-      mode: "mock",
-      development: true,
-      github: { connected: deployState.connected, account: deployState.connected ? "katch-agency" : null, installUrl: null },
-      providers: { vercel: true, netlify: true },
-    });
-  }
-  if (path === "/api/github/connection") {
-    return stubJson({ connected: deployState.connected, account: deployState.connected ? "katch-agency" : null, mode: "mock", installUrl: null });
-  }
-  if (path === "/api/github/connect" && method === "POST") {
-    deployState.connected = true;
-    return stubJson({ connected: true, account: "katch-agency", mode: "mock" });
-  }
-  if (path === "/api/github/repositories" && method === "POST") {
-    const existing = deployState.repos.get(body.name);
-    if (!existing) deployState.repos.set(body.name, { name: body.name, owner: "katch-agency", commits: [] });
-    return stubJson({
-      id: body.name,
-      name: body.name,
-      owner: "katch-agency",
-      url: `https://github.com/katch-agency/${body.name}`,
-      reused: Boolean(existing),
-    });
-  }
-  if (path === "/api/github/push" && method === "POST") {
-    const repoName = String(body.repository).split("/")[1] ?? "repo";
-    const repo = deployState.repos.get(repoName) ?? { name: repoName, owner: "katch-agency", commits: [] };
-    deployState.seq += 1;
-    const commitId = `mock-commit-${deployState.seq}`;
-    repo.commits.unshift(commitId);
-    return stubJson({
-      commitId,
-      url: `https://github.com/katch-agency/${repoName}/commit/${commitId}`,
-      filesPushed: Object.keys(body.files ?? {}).length,
-    });
-  }
-  if (path === "/api/vercel/prepare" && method === "POST") {
-    const name = `katch-${body.slug}`;
-    return stubJson({ projectId: `mock-vercel-${body.slug}`, name, accountId: "mock-team", dashboardUrl: `https://vercel.com/mock-team/${name}` });
-  }
-  if (path === "/api/netlify/prepare" && method === "POST") {
-    const name = `katch-${body.slug}`;
-    return stubJson({
-      siteId: `mock-netlify-${body.slug}`,
-      name,
-      url: `https://mock-${body.slug}.netlify.app`,
-      dashboardUrl: `https://app.netlify.com/sites/${name}`,
-    });
-  }
-  if ((path === "/api/vercel/deploy" || path === "/api/netlify/deploy") && method === "POST") {
-    deployState.seq += 1;
-    const id = `mock-dep-${deployState.seq}`;
-    deployState.deploys.set(id, { provider: path.includes("netlify") ? "netlify" : "vercel", repository: body.repository, polls: 0, slug: body.slug });
-    return stubJson({ deploymentId: id, url: null });
-  }
-  if (path.startsWith("/api/deployments/status")) {
-    const q = new URLSearchParams(path.split("?")[1] ?? "");
-    const d = deployState.deploys.get(q.get("id") ?? "");
-    if (!d) return stubJson({ error: { code: "deployment-not-found", message: "The deployment does not exist." } }, 404);
-    d.polls += 1;
-    const fails = /fail/.test(String(d.repository ?? ""));
-    if (fails && d.polls >= 2) {
-      return stubJson({ status: "failed", url: null, previewUrl: null, error: "Build failed: simulated error (Development Mode)." });
-    }
-    if (d.polls >= 3) {
-      const domain = d.provider === "vercel" ? "vercel" : "netlify";
-      return stubJson({ status: "live", url: `https://mock-${d.slug}.${domain}.app`, previewUrl: null });
-    }
-    return stubJson({ status: "building", url: null, previewUrl: null });
-  }
-  /* Anything else (image embeds during generation, etc.) → not ok */
-  return stubJson({ error: { code: "not-found", message: "Not found in test stub." } }, 404);
 };
 
 await import(pathToFileURL("/tmp/katch-render-entry.mjs").href + "?t=" + Date.now());
@@ -297,6 +193,19 @@ ok(text().includes("Signature Cakes"), "preview renders menu content");
 ok(text().includes("Order on WhatsApp"), "preview renders CTA content");
 ok(text().includes("Chocolate Ganache"), "preview renders menu items");
 
+console.log("\n4b) Standalone ZIP export UI");
+const exportButton = [...document.querySelectorAll("button")].find((button) => button.textContent.trim() === "Export");
+exportButton?.click();
+await waitFor(() => text().includes("Standalone React/Vite project"));
+ok(text().includes("Download ZIP"), "ZIP option extends the existing export modal");
+const zipButton = [...document.querySelectorAll("button")].find((button) => button.textContent.includes("Download ZIP"));
+zipButton?.click();
+await waitFor(() => text().includes("Include source code"));
+ok(text().includes("Looky Cakes") && text().includes("Elegant Restaurant"), "ZIP dialog summarizes the current project");
+ok(text().includes("Include downloadable assets") && text().includes("Include README"), "ZIP options render");
+ok(text().includes("Generate ZIP"), "ZIP generation action is available");
+document.querySelector("button[aria-label='Close dialog']")?.click();
+
 console.log("\n5) Arabic RTL project preview");
 const hawa4yId = saved.find((p) => p.config.projectInfo.name === "Bta3 7awa4y")?.id;
 nav(`/editor/${hawa4yId}`);
@@ -312,15 +221,6 @@ ok(document.querySelectorAll("img").length >= 20, "20 template preview images");
 ok(text().includes("Elegant Restaurant") && text().includes("Developer Portfolio"), "classic template names");
 ok(text().includes("Fashion Editorial") && text().includes("AI Product"), "e-commerce & SaaS templates listed");
 ok(text().includes("E-commerce") && text().includes("SaaS"), "new category filters shown");
-ok(text().includes("New from project"), "create-template-from-project button present");
-/* Open the create-from-project modal */
-const newFromProject = [...document.querySelectorAll("button")].find((b) => b.textContent.includes("New from project"));
-newFromProject?.click();
-await waitFor(() => text().includes("Create template from a project"));
-ok(text().includes("Create template from a project"), "project→template modal opens");
-const cancelBtn = [...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Cancel");
-cancelBtn?.click();
-await new Promise((r) => setTimeout(r, 300));
 nav("/sections");
 await waitFor(() => text().includes("Reservation"));
 ok(text().includes("Navbar") && text().includes("Reservation") && text().includes("Case Studies"), "section library");
@@ -331,30 +231,6 @@ nav("/settings");
 await waitFor(() => text().includes("Restore demo data"));
 ok(text().includes("Workspace") && text().includes("Restore demo data"), "settings");
 ok(text().includes("Storage & Sync") && text().includes("Local browser storage"), "storage status shows local adapter when no Firebase env");
-
-console.log("\n6b) Export modal — scaffold + share");
-nav(`/editor/${lookyId}`);
-await waitFor(() => text().includes("Signature Cakes"));
-const exportBtn = [...document.querySelectorAll("button")].find((b) => b.textContent.includes("Export"));
-exportBtn?.click();
-await waitFor(() => text().includes("Standalone React/Vite project"));
-ok(text().includes("Standalone React/Vite project"), "real code-generation export row");
-ok(text().includes("Share for review"), "share-for-review row");
-const closeBtn = [...document.querySelectorAll("button")].find((b) => b.getAttribute("aria-label") === "Close dialog");
-closeBtn?.click();
-await new Promise((r) => setTimeout(r, 300));
-/* Save-as-template in the editor menu */
-const moreBtn = [...document.querySelectorAll("button")].find((b) => b.getAttribute("aria-label") === "More actions");
-moreBtn?.click();
-await waitFor(() => text().includes("Save as template"));
-ok(text().includes("Save as template"), "editor menu has Save as template");
-const menuSave = [...document.querySelectorAll("button")].find((b) => b.textContent.includes("Save as template"));
-menuSave?.click();
-await waitFor(() => text().includes("Saved as template"));
-ok(text().includes("Saved as template"), "save-as-template toast confirms");
-/* the template landed in the store */
-const customTpls = JSON.parse(localStorage.getItem("katch-studio:customTemplates:v1") ?? "[]");
-ok(customTpls.some((t) => t.name.includes("Looky Cakes")), "custom template persisted");
 
 console.log("\n7) Full-screen preview");
 nav(`/preview/${lookyId}`);
@@ -470,87 +346,6 @@ ok(text().includes("Duplicate “"), "palette lists project commands");
 dom.window.dispatchEvent(new dom.window.KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
 await waitFor(() => !document.querySelector("input[placeholder='Search Katch Studio…']"));
 ok(!document.querySelector("input[placeholder='Search Katch Studio…']"), "palette closes with Escape");
-
-console.log("\n13) Deployment tab — full lifecycle (mock backend via stubbed API)");
-{
-  nav(`/editor/${lookyId}`);
-  await waitFor(() => text().includes("Export") && !text().includes("Back to Editor"));
-
-  /* Open the Deploy tab */
-  const deployTab = [...document.querySelectorAll("nav[aria-label='Inspector tabs'] button")].find((b) => b.textContent.trim() === "Deploy");
-  deployTab?.click();
-  await waitFor(() => text().includes("Connect GitHub"));
-  ok(text().includes("Not connected"), "first deploy: GitHub shown as not connected");
-  ok(text().includes("Development Mode"), "mock backend clearly labelled Development Mode");
-  ok(text().includes("Vercel") && text().includes("Netlify") && text().includes("Recommended"), "provider cards render (Vercel recommended)");
-  const deployBtn = () => [...document.querySelectorAll("button")].find((b) => b.textContent.includes("Deploy Project"));
-  ok(deployBtn()?.disabled === true, "Deploy disabled until GitHub is connected");
-
-  /* Connect GitHub */
-  [...document.querySelectorAll("button")].find((b) => b.textContent.includes("Connect GitHub"))?.click();
-  await waitFor(() => text().includes("Connected as katch-agency"), 10000);
-  ok(text().includes("Connected as katch-agency"), "Connect GitHub completes (mock account)");
-  await waitFor(() => deployBtn()?.disabled === false, 10000);
-  ok(deployBtn()?.disabled === false, "Deploy enabled after connect");
-
-  /* ---- Failure path: repo name containing "fail" fails the build ---- */
-  const setInput = (input, value) => {
-    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
-    setter.call(input, value);
-    input.dispatchEvent(new window.Event("input", { bubbles: true }));
-  };
-  const repoInput = document.querySelector("input[aria-label='Repository name']");
-  setInput(repoInput, "katch-fail-cakes");
-  await new Promise((r) => setTimeout(r, 200));
-  deployBtn()?.click();
-  await waitFor(() => text().includes("Retry Deployment"), 25000);
-  ok(text().includes("Retry Deployment"), "build failure shows Retry Deployment");
-  ok(text().includes("Build failed"), "friendly failure message shown");
-  ok(text().includes("Failed"), "history records the failed attempt");
-
-  /* ---- Retry with a corrected name → live ---- */
-  const repoInput2 = document.querySelector("input[aria-label='Repository name']");
-  setInput(repoInput2, "katch-looky-cakes");
-  await new Promise((r) => setTimeout(r, 200));
-  [...document.querySelectorAll("button")].find((b) => b.textContent.includes("Retry Deployment"))?.click();
-  await waitFor(() => text().includes("Open Website"), 30000);
-  ok(text().includes("Open Website"), "retry reaches LIVE with production URL");
-  ok(text().includes("mock-looky-cakes.vercel.app"), "production URL displayed");
-  ok(text().includes("Deployment History"), "history section renders");
-  ok(text().includes("Deployed version is up to date"), "freshly deployed content shows no changes pending");
-
-  /* Deployment metadata persisted to the draft (autosave is debounced — wait for it) */
-  await waitFor(() => {
-    const draftCheck = JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}");
-    const dep = draftCheck[lookyId]?.deployment;
-    return dep?.status === "live" && Boolean(dep?.productionUrl) && dep?.github?.repositoryName === "katch-looky-cakes";
-  }, 10000);
-  const draftCheck = JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}");
-  const dep = draftCheck[lookyId]?.deployment;
-  ok(dep?.status === "live" && dep?.productionUrl && dep?.github?.repositoryName === "katch-looky-cakes", "deployment config persisted (status/url/repo)");
-  await waitFor(() => (JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}")[lookyId]?.deploymentHistory ?? []).length >= 2, 10000);
-  const historyCheck = JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}");
-  ok((historyCheck[lookyId]?.deploymentHistory ?? []).length >= 2, "deployment history persisted (failed + live entries)");
-
-  /* ---- Edit → Changes detected → Deploy Changes ---- */
-  const nameBtn = [...document.querySelectorAll("header button")].find((b) => b.textContent.trim().startsWith("Looky Cakes"));
-  nameBtn?.click();
-  await waitFor(() => Boolean(document.querySelector("input[aria-label='Project name']")));
-  setInput(document.querySelector("input[aria-label='Project name']"), "Renamed Cakes");
-  document.querySelector("input[aria-label='Project name']").dispatchEvent(new window.FocusEvent("focusout", { bubbles: true }));
-  await waitFor(() => text().includes("Changes detected"), 15000);
-  ok(text().includes("Changes detected"), "content change detected against the deployed version");
-  ok(text().includes("Deploy Changes"), "Deploy Changes CTA shown");
-  [...document.querySelectorAll("button")].find((b) => b.textContent.includes("Deploy Changes"))?.click();
-  await waitFor(() => {
-    const d = JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}");
-    return (d[lookyId]?.deploymentHistory ?? []).length >= 3 && d[lookyId]?.deployment?.lastCommitMessage !== "Initial Katch Studio deployment";
-  }, 30000);
-  const finalDraft = JSON.parse(localStorage.getItem("katch-studio:drafts:v1") ?? "{}");
-  ok((finalDraft[lookyId]?.deploymentHistory ?? []).length >= 3, "redeploy appended history (no new repository)");
-  ok(finalDraft[lookyId]?.deployment?.lastCommitMessage === "Update website content", "redeploy commit message describes the update");
-  ok(finalDraft[lookyId]?.deployment?.status === "live", "redeploy back to live");
-}
 
 console.log("\n10) Deployed build without Firebase → local-mode banner");
 {

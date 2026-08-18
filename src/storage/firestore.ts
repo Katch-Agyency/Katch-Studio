@@ -30,22 +30,6 @@ export interface FirestoreSetupConfig {
 const MAX_DOC_BYTES = 900_000;
 const BATCH_LIMIT = 450;
 
-/** Firestore rejects documents containing `undefined` field values
- *  ("Unsupported field value: undefined") — reads still work, so this
- *  failure mode looks exactly like "connected but writes fail".
- *  Strip undefined recursively before every write. */
-function sanitizeForFirestore<T>(value: T): T {
-  if (Array.isArray(value)) return value.map((v) => sanitizeForFirestore(v)) as unknown as T;
-  if (value && typeof value === "object") {
-    const out: Record<string, unknown> = {};
-    for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
-      if (v !== undefined) out[key] = sanitizeForFirestore(v);
-    }
-    return out as unknown as T;
-  }
-  return value;
-}
-
 export async function createFirestoreAdapter(config: FirestoreSetupConfig): Promise<StudioStorageAdapter> {
   const [{ initializeApp, getApps }, { getFirestore, collection, doc, getDoc, getDocs, writeBatch }] =
     await Promise.all([import("firebase/app"), import("firebase/firestore")]);
@@ -111,15 +95,14 @@ export async function createFirestoreAdapter(config: FirestoreSetupConfig): Prom
     }
 
     for (const d of docs) {
-      const clean = sanitizeForFirestore(d.data);
-      const bytes = JSON.stringify(clean).length;
+      const bytes = JSON.stringify(d.data).length;
       if (bytes > MAX_DOC_BYTES) {
         throw new Error(
           `Document "${d.id}" is ${(bytes / 1024 / 1024).toFixed(2)} MB — over the Firestore 1 MiB limit. ` +
             `Replace uploaded images with URLs or reduce their size (Brand/Content → images).`
         );
       }
-      batch.set(doc(ref, d.id), clean);
+      batch.set(doc(ref, d.id), d.data);
       count += 1;
       if (count >= BATCH_LIMIT) await flush();
     }
@@ -213,12 +196,12 @@ export async function createFirestoreAdapter(config: FirestoreSetupConfig): Prom
 
     async saveLastOpened(projectId) {
       const { setDoc } = await import("firebase/firestore");
-      await setDoc(metaDoc, sanitizeForFirestore({ lastOpenedProjectId: projectId }), { merge: true });
+      await setDoc(metaDoc, { lastOpenedProjectId: projectId }, { merge: true });
     },
 
     async saveCustomTemplates(templates) {
       const { setDoc } = await import("firebase/firestore");
-      await setDoc(metaDoc, sanitizeForFirestore({ customTemplates: templates }), { merge: true });
+      await setDoc(metaDoc, { customTemplates: templates }, { merge: true });
     },
 
     async markSeeded() {
