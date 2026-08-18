@@ -6,11 +6,27 @@
    mode?" answerable from the Vercel build logs alone.
    ============================================================ */
 
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { parseEnvFile } from "../server/lib/credentials.mjs";
+
+/* Merge the local .env for the deployment-mode hint (the real server
+   does the same via dotenv; OS-level vars always win). */
+const localEnv = (() => {
+  try {
+    const p = resolve(process.cwd(), ".env");
+    return existsSync(p) ? parseEnvFile(readFileSync(p, "utf8")) : {};
+  } catch {
+    return {};
+  }
+})();
+const merged = { ...localEnv, ...process.env };
+
 const REQUIRED = ["VITE_FIREBASE_API_KEY", "VITE_FIREBASE_AUTH_DOMAIN", "VITE_FIREBASE_PROJECT_ID"];
 const OPTIONAL = ["VITE_FIREBASE_WORKSPACE_ID"];
 
-const missing = REQUIRED.filter((name) => !process.env[name]);
-const set = REQUIRED.filter((name) => Boolean(process.env[name]));
+const missing = REQUIRED.filter((name) => !merged[name]);
+const set = REQUIRED.filter((name) => Boolean(merged[name]));
 
 if (missing.length === 0) {
   console.log(`✓ Firebase env present in this build: ${set.map(() => "✓").join(" ")} (apiKey/authDomain/projectId set${process.env.VITE_FIREBASE_WORKSPACE_ID ? `, workspace "${process.env.VITE_FIREBASE_WORKSPACE_ID}"` : ", default workspace"})`);
@@ -25,17 +41,21 @@ if (missing.length === 0) {
 }
 
 /* Also warn about the classic mistake: raw firebaseConfig keys without VITE_ */
-const rawKeys = ["apiKey", "authDomain", "projectId"].filter((k) => process.env[k]);
+const rawKeys = ["apiKey", "authDomain", "projectId"].filter((k) => merged[k]);
 if (rawKeys.length > 0) {
   console.warn(`⚠ Found env variables WITHOUT the VITE_ prefix: ${rawKeys.join(", ")}.`);
   console.warn("  Rename them to VITE_FIREBASE_API_KEY / VITE_FIREBASE_AUTH_DOMAIN / VITE_FIREBASE_PROJECT_ID");
   console.warn("  (Vite only exposes variables whose names start with VITE_).");
 }
 
-/* Deployment backend mode hint — server-side vars only, never VITE_ */
-const deployGithub = Boolean((process.env.GITHUB_APP_ID && process.env.GITHUB_APP_PRIVATE_KEY) || process.env.GITHUB_PAT);
-const deployProvider = Boolean(process.env.VERCEL_TOKEN || process.env.NETLIFY_AUTH_TOKEN);
-const deployExplicit = (process.env.DEPLOYMENT_MODE ?? "").toLowerCase();
+/* Deployment backend mode hint — server-side vars only, never VITE_.
+   Mirrors the server's resolver: a GITHUB_APP_PRIVATE_KEY_FILE counts
+   as a key source too. */
+const deployGithub = Boolean(
+  (merged.GITHUB_APP_ID && (merged.GITHUB_APP_PRIVATE_KEY || merged.GITHUB_APP_PRIVATE_KEY_FILE)) || merged.GITHUB_PAT
+);
+const deployProvider = Boolean(merged.VERCEL_TOKEN || merged.NETLIFY_AUTH_TOKEN);
+const deployExplicit = (merged.DEPLOYMENT_MODE ?? "").toLowerCase();
 const deployMode = deployExplicit === "mock" ? "mock" : deployExplicit === "live" ? "live" : deployGithub && deployProvider ? "live" : "mock";
 if (deployMode === "live") {
   console.log(`✓ Deployment backend: LIVE mode (GitHub ${deployGithub ? "configured" : "MISSING"}, provider ${deployProvider ? "configured" : "MISSING"})`);

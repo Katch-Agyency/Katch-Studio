@@ -84,13 +84,14 @@ export class GithubBackend {
     }
   }
 
-  /** Shared classification for GitHub auth failures — user-safe copy only. */
-  authRejectedError() {
+  /** Shared classification for GitHub auth failures — user-safe copy only.
+   *  The technical field keeps GitHub's own rejection message (never key material). */
+  authRejectedError(ghDetail = "") {
     return new ApiError(
       401,
       "github-auth-rejected",
       "GitHub rejected the app credentials. The private key is likely revoked or does not match GITHUB_APP_ID — generate a fresh key on the GitHub App and update the server environment (all environments together, since a new key invalidates every older one).",
-      "GitHub rejected the app JWT (401)."
+      `GitHub rejected the app JWT (401)${ghDetail ? `: ${ghDetail}` : "."}`
     );
   }
 
@@ -119,7 +120,13 @@ export class GithubBackend {
     } catch (err) {
       if (err instanceof ApiError) {
         if (err.code === "github-key-invalid" || err.code === "github-app-id-invalid") throw err;
-        if (err.status === 401) throw this.authRejectedError();
+        if (err.status === 401) {
+          /* GitHub's own rejection message (safe text, no secrets) goes to the
+             server log + technical field — it distinguishes "could not be
+             decoded" (key/id problem) from other rejections. */
+          console.error("[deploy] GitHub rejected the app JWT (401):", err.message);
+          throw this.authRejectedError(err.message);
+        }
         if (err.status === 404) {
           throw new ApiError(
             400,
@@ -196,7 +203,10 @@ export class GithubBackend {
             hint: "The Katch GitHub App is not installed on your GitHub account yet.",
           };
         }
-        if (err.status === 401) throw this.authRejectedError();
+        if (err.status === 401) {
+          console.error("[deploy] GitHub rejected the app JWT (401):", err.message);
+          throw this.authRejectedError(err.message);
+        }
         if (err.status === 403) {
           throw new ApiError(
             403,

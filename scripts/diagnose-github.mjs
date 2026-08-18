@@ -48,7 +48,7 @@ async function fetchJson(url, headers, timeoutMs = 15000) {
     const res = await fetch(url, { headers, signal: ctrl.signal, redirect: "follow" });
     let data = null;
     try { data = await res.json(); } catch { /* non-JSON body */ }
-    return { status: res.status, data };
+    return { status: res.status, data, headers: res.headers };
   } catch (err) {
     if (err?.name === "AbortError") return { status: 0, data: null, error: "timed out" };
     return { status: 0, data: null, error: String(err?.cause?.code ?? err?.message ?? err) };
@@ -293,6 +293,54 @@ async function main() {
   /* ---------------- Live GitHub checks ---------------- */
   section("3. Live GitHub checks");
 
+  /* --- Clock skew vs GitHub (a skewed clock signs JWTs GitHub rejects) --- */
+  {
+    const t0 = Date.now();
+    const ping = await fetchJson("https://api.github.com/", { Accept: "application/vnd.github+json", "User-Agent": "katch-studio-diagnose" });
+    const t1 = Date.now();
+    const ghDate = ping.headers?.get?.("date");
+    if (ping.status === 200 && ghDate) {
+      const ghTime = new Date(ghDate).getTime();
+      const skew = Math.round((ghTime - (t0 + t1) / 2) / 1000);
+      if (Math.abs(skew) > 120) {
+        fail(`Local clock is ${Math.abs(skew)}s ${skew > 0 ? "BEHIND" : "AHEAD of"} GitHub — JWTs are signed with wrong timestamps and GitHub rejects them.`);
+        info("  Fix: sync the Windows clock (Settings → Time & Language → Sync now), then retry.");
+      } else {
+        ok(`Clock skew vs GitHub: ${skew}s — within tolerance.`);
+      }
+    } else if (ping.status === 0) {
+      warn(`Could not reach api.github.com (${ping.error}).`);
+    }
+  }
+
+  /* --- Public app lookup: the slug reveals the app's REAL numeric ID --- */
+  if (slug) {
+    const appRes = await fetchJson(
+      `https://api.github.com/apps/${encodeURIComponent(slug)}`,
+      { Accept: "application/vnd.github+json", "User-Agent": "katch-studio-diagnose", "X-GitHub-Api-Version": "2022-11-28" }
+    );
+    if (appRes.status === 200) {
+      const realId = String(appRes.data?.id ?? "");
+      const appName = appRes.data?.name ?? "";
+      ok(`Public app at this slug exists: "${appName}" — its REAL App ID is ${realId}.`);
+      if (appId) {
+        if (realId === String(appId)) {
+          ok(`GITHUB_APP_ID in .env (${appId}) matches this app.`);
+        } else {
+          fail(`MISMATCH: .env has GITHUB_APP_ID=${appId} but the app at slug "${slug}" has ID ${realId}.`);
+          info("  A private key only works with the App ID of the SAME app. Set GITHUB_APP_ID to the ID shown here (and make sure the key comes from this app).");
+        }
+      }
+    } else if (appRes.status === 404) {
+      fail(`No public GitHub App exists with slug "${slug}" — it is renamed, deleted, or the slug is wrong.`);
+      info("  Check the exact slug under GitHub → Settings → Developer settings → GitHub Apps.");
+    } else if (appRes.status === 0) {
+      warn(`Could not reach api.github.com (${appRes.error}).`);
+    } else {
+      warn(`Unexpected response looking up the app: ${appRes.status}`);
+    }
+  }
+
   if (!appId && !pat) {
     info("No GitHub credentials — live checks skipped.");
   } else {
@@ -345,6 +393,9 @@ async function main() {
         fail(`GitHub check aborted — configuration error (${code}): ${err.message}`);
       } else if (code === "github-auth-rejected") {
         fail("GitHub REJECTED the app JWT (401) — the private key does not match this App ID.");
+        if (err.technical && err.technical !== "GitHub rejected the app JWT (401).") {
+          info(`  GitHub's own message: ${err.technical}`);
+        }
         info("  Causes: the key was regenerated at some point (old key is dead), the key belongs to a");
         info("         different GitHub App, or GITHUB_APP_ID points at a different app.");
         info("  Fix: GitHub App → Settings → General → Private keys → Generate a private key,");
