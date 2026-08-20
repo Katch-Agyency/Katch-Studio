@@ -257,7 +257,6 @@ ok(text().includes("Saved as template"), "save-as-template toast confirms");
 const customTpls = JSON.parse(localStorage.getItem("katch-studio:customTemplates:v1") ?? "[]");
 ok(customTpls.some((t) => t.name.includes("Looky Cakes")), "custom template persisted");
 
->>>>>>> e6cb2fb (all changes)
 console.log("\n7) Full-screen preview");
 nav(`/preview/${lookyId}`);
 await waitFor(() => text().includes("Cakes that make moments"));
