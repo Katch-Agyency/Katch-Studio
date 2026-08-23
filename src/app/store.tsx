@@ -5,7 +5,7 @@ import { createLocalStorageAdapter } from "@/storage/local";
 import { buildDemoProjects } from "@/data/demo";
 import { createProjectFromTemplate, duplicateProject as cloneProject, type CreateProjectInput } from "@/lib/projectFactory";
 import { TEMPLATES } from "@/data/templates";
-import { uid } from "@/utils/helpers";
+import { uid, getProjectCounter, setProjectCounter } from "@/utils/helpers";
 import { useToast } from "@/app/toast";
 
 /* ============================================================
@@ -127,6 +127,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setLastOpenedProjectId(snap?.lastOpenedProjectId ?? null);
       setAdapter(active);
       setHydrated(true);
+
+      // Initialize project counter from storage
+      if (snap?.projectCounter !== undefined) {
+        setProjectCounter(snap.projectCounter);
+      }
     };
 
     void boot();
@@ -166,8 +171,17 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     const project = createProjectFromTemplate(input);
     setProjects((prev) => [project, ...prev]);
     setLastOpenedProjectId(project.id);
+    
+    // Sync counter to Firestore after project creation
+    if (adapter && adapter.saveProjectCounter) {
+      const counter = getProjectCounter();
+      if (counter > 0) {
+        adapter.saveProjectCounter(counter).catch(reportSyncError);
+      }
+    }
+    
     return project;
-  }, []);
+  }, [adapter, reportSyncError]);
 
   const saveProject = useCallback((project: Project) => {
     const stamped = { ...project, updatedAt: new Date().toISOString() };
@@ -209,9 +223,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       if (!source) return undefined;
       const copy = cloneProject(source);
       setProjects((prev) => [copy, ...prev]);
+      
+      // Sync counter to Firestore after duplication
+      if (adapter && adapter.saveProjectCounter) {
+        const counter = getProjectCounter();
+        if (counter > 0) {
+          adapter.saveProjectCounter(counter).catch(reportSyncError);
+        }
+      }
+      
       return copy;
     },
-    [projects]
+    [projects, adapter, reportSyncError]
   );
 
   const setStatus = useCallback((id: string, status: ProjectStatus) => {

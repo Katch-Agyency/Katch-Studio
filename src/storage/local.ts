@@ -12,6 +12,7 @@ const KEYS = {
   lastOpened: "katch-studio:lastOpened:v1",
   customTemplates: "katch-studio:customTemplates:v1",
   seeded: "katch-studio:seeded:v1",
+  counter: "katch-studio:project-counter",
 } as const;
 
 function readJSON<T>(key: string, fallback: T): T {
@@ -60,6 +61,14 @@ export function createLocalStorageAdapter(): StudioStorageAdapter {
     async markSeeded() {
       try {
         localStorage.setItem(KEYS.seeded, "1");
+      } catch {
+        /* non-critical */
+      }
+    },
+
+    async saveProjectCounter(counter) {
+      try {
+        localStorage.setItem(KEYS.counter, String(counter));
       } catch {
         /* non-critical */
       }
