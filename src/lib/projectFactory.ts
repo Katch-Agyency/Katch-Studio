@@ -13,7 +13,7 @@ import { getThemePreset } from "@/data/palette";
 import { getTemplate } from "@/data/templates";
 import { sectionDefaults } from "@/features/sections/registry";
 import { TEMPLATE_FEATURES } from "@/data/features";
-import { deepMerge, uid } from "@/utils/helpers";
+import { deepMerge, uid, generateProjectId } from "@/utils/helpers";
 
 /* ============================================================
    Project factory — the ONLY way a template becomes a project.
@@ -181,7 +181,7 @@ export function createProjectFromTemplate(input: CreateProjectInput): Project {
   };
 
   return {
-    id: uid(),
+    id: generateProjectId(),
     config,
     status: input.status ?? "draft",
     createdAt: now,
@@ -194,7 +194,7 @@ export function createProjectFromTemplate(input: CreateProjectInput): Project {
  *  resets client-specific identifiers, keeps content as a starting point. */
 export function duplicateProject(project: Project): Project {
   const copy = structuredClone(project);
-  copy.id = uid();
+  copy.id = generateProjectId();
   copy.config.projectInfo.name = `${project.config.projectInfo.name} (Copy)`;
   copy.config.projectInfo.client = "";
   copy.config.brand = { ...copy.config.brand, businessName: "" };

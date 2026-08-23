@@ -141,6 +141,7 @@ export async function createFirestoreAdapter(config: FirestoreSetupConfig): Prom
       lastOpenedProjectId: (meta.lastOpenedProjectId as string) ?? null,
       customTemplates: (meta.customTemplates as unknown as import("@/types").WebsiteTemplate[]) ?? [],
       seeded: Boolean(meta.seeded),
+      projectCounter: (meta.projectCounter as number) ?? 0,
     };
   };
 
@@ -197,6 +198,11 @@ export async function createFirestoreAdapter(config: FirestoreSetupConfig): Prom
     async saveLastOpened(projectId) {
       const { setDoc } = await import("firebase/firestore");
       await setDoc(metaDoc, { lastOpenedProjectId: projectId }, { merge: true });
+    },
+
+    async saveProjectCounter(counter) {
+      const { setDoc } = await import("firebase/firestore");
+      await setDoc(metaDoc, { projectCounter: counter }, { merge: true });
     },
 
     async saveCustomTemplates(templates) {
