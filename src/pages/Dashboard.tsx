@@ -171,6 +171,7 @@ export default function Dashboard() {
               <table className="w-full border-collapse">
                 <thead className="table-head">
                   <tr>
+                    <th className="th w-[70px]">ID</th>
                     <th className="th">Project</th>
                     <th className="th hidden md:table-cell">Client</th>
                     <th className="th hidden sm:table-cell">Type</th>
@@ -184,6 +185,11 @@ export default function Dashboard() {
                     const cat = getCategory(p.config.projectInfo.category);
                     return (
                       <tr key={p.id} className="group transition-colors hover:bg-surface-2/60">
+                        <td className="td">
+                          <span className="font-mono text-[13px] font-semibold text-brand">
+                            {p.id}
+                          </span>
+                        </td>
                         <td className="td">
                           <Link
                             to={`/editor/${p.id}`}

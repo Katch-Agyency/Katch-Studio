@@ -15,6 +15,8 @@ export interface StorageSnapshot {
   customTemplates: WebsiteTemplate[];
   /** True once the workspace has been initialized (prevents demo reseeding after a wipe) */
   seeded: boolean;
+  /** Sequential project counter for generating #001, #002, etc. */
+  projectCounter?: number;
 }
 
 export interface StudioStorageAdapter {
@@ -26,5 +28,6 @@ export interface StudioStorageAdapter {
   saveDrafts(drafts: Record<string, Project>): Promise<void>;
   saveLastOpened(projectId: string | null): Promise<void>;
   saveCustomTemplates(templates: WebsiteTemplate[]): Promise<void>;
+  saveProjectCounter?(counter: number): Promise<void>;
   markSeeded(): Promise<void>;
 }

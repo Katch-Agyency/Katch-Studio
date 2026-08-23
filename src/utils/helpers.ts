@@ -14,6 +14,60 @@ export function uid(): string {
   );
 }
 
+/** Sequential project ID counter key */
+const PROJECT_COUNTER_KEY = "katch-studio:project-counter";
+
+/** In-memory fallback for environments without localStorage (e.g., Node.js tests) */
+let memoryCounter = 0;
+
+/** Check if localStorage is available */
+function hasLocalStorage(): boolean {
+  try {
+    return typeof localStorage !== "undefined" && localStorage !== null;
+  } catch {
+    return false;
+  }
+}
+
+/** Generate sequential project ID like #001, #002, #003 */
+export function generateProjectId(): string {
+  let current: number;
+  if (hasLocalStorage()) {
+    current = parseInt(localStorage.getItem(PROJECT_COUNTER_KEY) ?? "0", 10);
+  } else {
+    current = memoryCounter;
+  }
+  const next = current + 1;
+  if (hasLocalStorage()) {
+    localStorage.setItem(PROJECT_COUNTER_KEY, String(next));
+  } else {
+    memoryCounter = next;
+  }
+  return `#${String(next).padStart(3, "0")}`;
+}
+
+/** Get current project counter value (for display/debugging) */
+export function getProjectCounter(): number {
+  if (hasLocalStorage()) {
+    return parseInt(localStorage.getItem(PROJECT_COUNTER_KEY) ?? "0", 10);
+  }
+  return memoryCounter;
+}
+
+/** Set project counter value (for migration/reset) */
+export function setProjectCounter(value: number): void {
+  if (hasLocalStorage()) {
+    localStorage.setItem(PROJECT_COUNTER_KEY, String(value));
+  } else {
+    memoryCounter = value;
+  }
+}
+
+/** Get the raw counter key for direct access */
+export function getProjectCounterKey(): string {
+  return PROJECT_COUNTER_KEY;
+}
+
 /** Class names combiner */
 export function cn(...parts: Array<string | false | null | undefined>): string {
   return parts.filter(Boolean).join(" ");

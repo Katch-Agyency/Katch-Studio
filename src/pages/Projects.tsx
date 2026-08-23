@@ -173,6 +173,7 @@ export default function Projects() {
             <table className="w-full min-w-[820px] border-collapse">
               <thead className="table-head">
                 <tr>
+                  <th className="th w-[80px]">ID</th>
                   <th className="th">Project</th>
                   <th className="th">Client</th>
                   <th className="th">Type</th>
@@ -188,6 +189,11 @@ export default function Projects() {
                   const cat = WEBSITE_CATEGORIES.find((c) => c.id === p.config.projectInfo.category);
                   return (
                     <tr key={p.id} className="group transition-colors hover:bg-surface-2/60">
+                      <td className="td">
+                        <span className="font-mono text-[13px] font-semibold text-brand">
+                          {p.id}
+                        </span>
+                      </td>
                       <td className="td">
                         <Link
                           to={`/editor/${p.id}`}
