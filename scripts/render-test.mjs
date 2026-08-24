@@ -36,7 +36,8 @@ const dom = new JSDOM('<!doctype html><html class="dark"><body><div id="root"></
 });
 globalThis.window = dom.window;
 globalThis.document = dom.window.document;
-globalThis.navigator = dom.window.navigator;
+/* Node ≥ 22 exposes `navigator` as a getter-only global — define over it. */
+Object.defineProperty(globalThis, "navigator", { value: dom.window.navigator, configurable: true, writable: true });
 globalThis.localStorage = dom.window.localStorage;
 globalThis.sessionStorage = dom.window.sessionStorage;
 globalThis.HTMLElement = dom.window.HTMLElement;
@@ -232,6 +233,237 @@ await waitFor(() => text().includes("Restore demo data"));
 ok(text().includes("Workspace") && text().includes("Restore demo data"), "settings");
 ok(text().includes("Storage & Sync") && text().includes("Local browser storage"), "storage status shows local adapter when no Firebase env");
 
+console.log("\n6c) Employee Management — Admin (full final-test walkthrough)");
+{
+  const storedProfiles = () => JSON.parse(localStorage.getItem("katch-studio:profiles:v1") ?? "[]");
+  const storedLeads = () => JSON.parse(localStorage.getItem("katch-studio:leads:v1") ?? "[]");
+  const inputSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+  const selectSetter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, "value").set;
+  const setInput = (el, value) => {
+    inputSetter.call(el, value);
+    el.dispatchEvent(new window.Event("input", { bubbles: true }));
+  };
+  const setSelect = (el, value) => {
+    selectSetter.call(el, value);
+    el.dispatchEvent(new window.Event("change", { bubbles: true }));
+  };
+  const dialogButton = (label) =>
+    [...document.querySelectorAll("[role='dialog'] button")].find((b) => b.textContent.trim().includes(label));
+  const sidebarLinks = () => [...document.querySelectorAll("nav[aria-label='Main'] a")].map((a) => a.getAttribute("href"));
+  const teamRow = (name) => [...document.querySelectorAll("tbody tr")].find((r) => r.textContent.includes(name));
+
+  /* --- Team page renders with the seeded roster + lead counts --- */
+  nav("/team");
+  await waitFor(() => text().includes("Add Employee") && text().includes("Ahmed Hassan"));
+  ok(text().includes("Ahmed Hassan") && text().includes("Mohamed Samir") && text().includes("Ali Mostafa"), "seeded employee list renders");
+  ok(text().includes("Ziad Essam") && text().includes("Admin"), "admin profile listed with role");
+  const ahmedRow = teamRow("Ahmed Hassan");
+  ok(
+    ahmedRow && ahmedRow.cells[3]?.textContent.trim() === "3" && ahmedRow.cells[4]?.textContent.trim() === "4",
+    "lead counts per employee (Ahmed: 3 active / 4 total)"
+  );
+  ok(sidebarLinks().includes("/team") && sidebarLinks().includes("/leads") && sidebarLinks().includes("/tasks"), "Team/Leads/Your Tasks in admin nav");
+
+  /* --- 1) Admin adds a new employee --- */
+  const addBtn = [...document.querySelectorAll("button")].find(
+    (b) => b.textContent.trim() === "Add Employee" && !b.closest("[role='dialog']")
+  );
+  addBtn?.click();
+  await waitFor(() => Boolean(document.querySelector("#emp-name")));
+  setInput(document.querySelector("#emp-name"), "Sara Khaled");
+  setInput(document.querySelector("#emp-phone"), "+20 111 555 0000");
+  setInput(document.querySelector("#emp-email"), "sara@katch.agency");
+  dialogButton("Add Employee")?.click();
+  await waitFor(() => !document.querySelector("[role='dialog']"));
+  /* 2) Employee appears in the employee list */
+  await waitFor(() => Boolean(teamRow("Sara Khaled")));
+  ok(Boolean(teamRow("Sara Khaled")), "new employee appears in the employee list");
+  ok(
+    storedProfiles().filter((p) => p.name === "Sara Khaled").length === 1,
+    "exactly one profile record persisted (no duplicate)"
+  );
+
+  /* --- Duplicate guard --- */
+  [...document.querySelectorAll("button")].find(
+    (b) => b.textContent.trim() === "Add Employee" && !b.closest("[role='dialog']")
+  )?.click();
+  await waitFor(() => Boolean(document.querySelector("#emp-name")));
+  setInput(document.querySelector("#emp-name"), "sara khaled");
+  dialogButton("Add Employee")?.click();
+  await waitFor(() => Boolean(document.querySelector("[role='dialog'] [role='alert']")));
+  ok(
+    document.querySelector("[role='dialog'] [role='alert']")?.textContent.includes("already exists"),
+    "duplicate employee name rejected"
+  );
+  dialogButton("Cancel")?.click();
+  await waitFor(() => !document.querySelector("[role='dialog']"));
+  ok(storedProfiles().length === 5, "still 5 employees after duplicate attempt");
+
+  /* --- 3) Immediately available in Lead Assignment --- */
+  nav("/leads");
+  await waitFor(() => text().includes("Habiba Sherif"));
+  const anyAssigneeSelect = document.querySelector("select[aria-label^='Assignee of']");
+  ok(
+    anyAssigneeSelect && [...anyAssigneeSelect.options].some((o) => o.textContent.trim() === "Sara Khaled"),
+    "new employee appears in Lead Assignment"
+  );
+
+  /* --- 4) Immediately appears in Your Tasks --- */
+  nav("/tasks");
+  await waitFor(() => text().includes("Sara Khaled (0)"));
+  ok(text().includes("Sara Khaled (0)"), "new employee appears in Your Tasks");
+  ok(text().includes("Ahmed Hassan (3)") && text().includes("Mohamed Samir (5)") && text().includes("Ali Mostafa (0)"), "seeded task counts (3/5/0)");
+
+  /* --- 5+6) Admin edits employee information --- */
+  nav("/team");
+  await waitFor(() => Boolean(teamRow("Sara Khaled")));
+  const saraIdBefore = storedProfiles().find((p) => p.name === "Sara Khaled")?.id;
+  teamRow("Sara Khaled")?.querySelectorAll("button").forEach(() => undefined);
+  const editBtn = [...(teamRow("Sara Khaled")?.querySelectorAll("button") ?? [])].find((b) =>
+    b.textContent.includes("Edit")
+  );
+  editBtn?.click();
+  await waitFor(() => Boolean(document.querySelector("#emp-name")));
+  setInput(document.querySelector("#emp-name"), "Sara El Masry");
+  setSelect(document.querySelector("#emp-role"), "Manager");
+  dialogButton("Save Changes")?.click();
+  await waitFor(() => !document.querySelector("[role='dialog']"));
+  await waitFor(() => Boolean(teamRow("Sara El Masry")));
+  ok(Boolean(teamRow("Sara El Masry")), "edited employee row updated");
+  const saraAfter = storedProfiles().find((p) => p.name === "Sara El Masry");
+  ok(
+    saraAfter && saraAfter.id === saraIdBefore && saraAfter.role === "Manager",
+    "edit updated the SAME record in place (no duplicate created)"
+  );
+
+  /* --- Give Sara one lead so deactivation has history to keep --- */
+  nav("/leads");
+  await waitFor(() => text().includes("Habiba Sherif"));
+  const habibaRow = teamRow("Habiba Sherif");
+  const habibaSelect = habibaRow?.querySelector("select[aria-label^='Assignee of']");
+  ok(Boolean(habibaSelect), "unassigned lead has an assignee dropdown");
+  if (habibaSelect) setSelect(habibaSelect, saraIdBefore);
+  await waitFor(() => storedLeads().find((l) => l.name === "Habiba Sherif")?.assignedTo === saraIdBefore);
+  ok(true, "lead assigned to the new employee");
+
+  /* --- 7) Admin deactivates the employee --- */
+  nav("/team");
+  /* "Active Leads" is the Team table header — a page marker, because the
+     Leads table also renders employee names inside <option> elements. */
+  await waitFor(() => text().includes("Active Leads") && Boolean(teamRow("Sara El Masry")));
+  const deactivateBtn = [...(teamRow("Sara El Masry")?.querySelectorAll("button") ?? [])].find((b) =>
+    b.textContent.includes("Deactivate")
+  );
+  deactivateBtn?.click();
+  await waitFor(() => teamRow("Sara El Masry")?.textContent.includes("Inactive"));
+  ok(teamRow("Sara El Masry")?.textContent.includes("Inactive"), "employee status flips to Inactive");
+  ok(
+    storedProfiles().find((p) => p.id === saraIdBefore)?.status === "inactive",
+    "deactivation persisted (record kept, not deleted)"
+  );
+
+  /* --- 10) Existing leads remain intact --- */
+  ok(
+    storedLeads().find((l) => l.name === "Habiba Sherif")?.assignedTo === saraIdBefore,
+    "existing leads remain assigned after deactivation"
+  );
+  ok(storedLeads().length === 13, "no leads were deleted");
+
+  /* --- 8) Removed from new assignment options --- */
+  nav("/leads");
+  await waitFor(() => text().includes("Farida Adel"));
+  const faridaSelect = teamRow("Farida Adel")?.querySelector("select[aria-label^='Assignee of']");
+  ok(
+    faridaSelect && [...faridaSelect.options].every((o) => !o.textContent.includes("Sara El Masry")),
+    "inactive employee removed from new Lead Assignment options"
+  );
+  const habibaSelect2 = teamRow("Habiba Sherif")?.querySelector("select[aria-label^='Assignee of']");
+  ok(
+    habibaSelect2?.selectedOptions[0]?.textContent.includes("Sara El Masry (inactive)"),
+    "historical assignment stays visible"
+  );
+
+  /* --- 4') Removed from Your Tasks --- */
+  nav("/tasks");
+  await waitFor(() => text().includes("Ahmed Hassan (3)"));
+  ok(!text().includes("Sara El Masry ("), "inactive employee disappears from Your Tasks");
+  ok(text().includes("still holds 1 lead"), "kept-history section shows their untouched leads");
+
+  /* --- 9) Excluded from Auto Assignment --- */
+  nav("/leads");
+  await waitFor(() => text().includes("Auto-assign all"));
+  const addLeadBtn = [...document.querySelectorAll("button")].find(
+    (b) => b.textContent.trim() === "Add Lead" && !b.closest("[role='dialog']")
+  );
+  addLeadBtn?.click();
+  await waitFor(() => Boolean(document.querySelector("#lead-name")));
+  setInput(document.querySelector("#lead-name"), "Auto Test Lead");
+  dialogButton("Add Lead")?.click();
+  await waitFor(() => !document.querySelector("[role='dialog']"));
+  await waitFor(() => storedLeads().some((l) => l.name === "Auto Test Lead"));
+  [...document.querySelectorAll("button")].find((b) => b.textContent.includes("Auto-assign all"))?.click();
+  await waitFor(() => {
+    const ls = storedLeads();
+    return ["Auto Test Lead", "Mostafa Gamal"].every((n) => {
+      const lead = ls.find((l) => l.name === n);
+      return lead && lead.assignedTo && lead.assignedTo !== saraIdBefore;
+    });
+  });
+  ok(
+    storedLeads().filter((l) => l.assignedTo === saraIdBefore).length === 1,
+    "auto-assignment skipped the inactive employee (only their original lead kept)"
+  );
+  const autoAssigned = storedLeads().find((l) => l.name === "Auto Test Lead");
+  const autoAssignee = storedProfiles().find((p) => p.id === autoAssigned?.assignedTo);
+  ok(autoAssignee?.status === "active", "auto-assignment picked an ACTIVE employee");
+
+  /* --- 11+12) Reactivation restores availability --- */
+  nav("/team");
+  await waitFor(() => text().includes("Active Leads") && Boolean(teamRow("Sara El Masry")));
+  const activateBtn = [...(teamRow("Sara El Masry")?.querySelectorAll("button") ?? [])].find((b) =>
+    b.textContent.includes("Activate")
+  );
+  activateBtn?.click();
+  await waitFor(() => teamRow("Sara El Masry") && !teamRow("Sara El Masry")?.textContent.includes("Inactive"));
+  ok(!teamRow("Sara El Masry")?.textContent.includes("Inactive"), "employee reactivated");
+  nav("/leads");
+  await waitFor(() => text().includes("Farida Adel"));
+  const faridaSelect2 = teamRow("Farida Adel")?.querySelector("select[aria-label^='Assignee of']");
+  ok(
+    faridaSelect2 && [...faridaSelect2.options].some((o) => o.textContent.trim() === "Sara El Masry"),
+    "reactivated employee back in Lead Assignment"
+  );
+  nav("/tasks");
+  await waitFor(() => text().includes("Sara El Masry (1)"));
+  ok(text().includes("Sara El Masry (1)"), "reactivated employee back in Your Tasks with their active lead");
+
+  /* --- Regular members never see Employee Management --- */
+  const switcher = document.querySelector("button[aria-label='Switch acting profile']");
+  ok(Boolean(switcher), "acting-profile switcher available");
+  switcher?.click();
+  await waitFor(() => Boolean(document.querySelector("[role='menu']")));
+  const aliItem = [...document.querySelectorAll("[role='menu'] button")].find((b) => b.textContent.includes("Ali Mostafa"));
+  aliItem?.click();
+  await waitFor(() => !sidebarLinks().includes("/team"));
+  ok(!sidebarLinks().includes("/team"), "member nav hides Employee Management");
+  nav("/team");
+  await waitFor(() => text().includes("Admin access required"));
+  ok(text().includes("Admin access required"), "member gets an admin-only notice on /team");
+  nav("/leads");
+  await waitFor(() => text().includes("Auto Test Lead"));
+  ok(
+    !document.querySelector("select[aria-label^='Assignee of']") && !text().includes("Add Lead"),
+    "member sees leads read-only (no assignment controls)"
+  );
+  /* back to admin — everything restored */
+  document.querySelector("button[aria-label='Switch acting profile']")?.click();
+  await waitFor(() => Boolean(document.querySelector("[role='menu']")));
+  const ziadItem = [...document.querySelectorAll("[role='menu'] button")].find((b) => b.textContent.includes("Ziad Essam"));
+  ziadItem?.click();
+  await waitFor(() => sidebarLinks().includes("/team"));
+  ok(sidebarLinks().includes("/team"), "admin nav restored after switching back");
+}
+
 console.log("\n6b) Export modal — scaffold + share");
 nav(`/editor/${lookyId}`);
 await waitFor(() => text().includes("Signature Cakes"));
@@ -381,7 +613,7 @@ console.log("\n10) Deployed build without Firebase → local-mode banner");
   });
   globalThis.window = dom2.window;
   globalThis.document = dom2.window.document;
-  globalThis.navigator = dom2.window.navigator;
+  Object.defineProperty(globalThis, "navigator", { value: dom2.window.navigator, configurable: true, writable: true });
   globalThis.localStorage = dom2.window.localStorage;
   globalThis.HTMLElement = dom2.window.HTMLElement;
   await import(pathToFileURL("/tmp/katch-render-entry.mjs").href + "?banner=" + Date.now());

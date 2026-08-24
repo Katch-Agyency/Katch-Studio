@@ -5,6 +5,7 @@ import {
   FolderKanban,
   LayoutDashboard,
   LayoutTemplate,
+  ListTodo,
   Moon,
   Package,
   Plus,
@@ -12,6 +13,8 @@ import {
   Search,
   Settings,
   Sun,
+  Target,
+  Users,
   Component,
 } from "lucide-react";
 import { useStore } from "@/app/store";
@@ -47,7 +50,7 @@ export default function CommandPalette() {
   const listRef = useRef<HTMLDivElement>(null);
 
   const navigate = useNavigate();
-  const { projects, duplicateProject } = useStore();
+  const { projects, duplicateProject, isAdmin } = useStore();
   const { theme, toggle } = useStudioTheme();
   const { toast } = useToast();
 
@@ -93,6 +96,12 @@ export default function CommandPalette() {
       { id: "nav-projects", group: "Navigate", label: "Go to Projects", icon: FolderKanban, run: go("/projects") },
       { id: "nav-templates", group: "Navigate", label: "Go to Templates", icon: LayoutTemplate, run: go("/templates") },
       { id: "nav-sections", group: "Navigate", label: "Go to Sections", icon: Package, run: go("/sections") },
+      /* Employee Management is admin-only — members never get the command. */
+      ...(isAdmin
+        ? [{ id: "nav-team", group: "Navigate", label: "Go to Team (Employee Management)", icon: Users, run: go("/team") }]
+        : []),
+      { id: "nav-leads", group: "Navigate", label: "Go to Leads", icon: Target, run: go("/leads") },
+      { id: "nav-tasks", group: "Navigate", label: "Go to Your Tasks", icon: ListTodo, run: go("/tasks") },
       { id: "nav-ds", group: "Navigate", label: "Go to Design System", icon: Component, run: go("/design-system") },
       { id: "nav-settings", group: "Navigate", label: "Go to Settings", icon: Settings, run: go("/settings") },
     ];
@@ -152,7 +161,7 @@ export default function CommandPalette() {
         ];
       });
     return [...nav, ...actions, ...projectCommands];
-  }, [navigate, projects, duplicateProject, theme, toggle, toast]);
+  }, [navigate, projects, duplicateProject, isAdmin, theme, toggle, toast]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();

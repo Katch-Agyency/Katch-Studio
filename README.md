@@ -64,6 +64,26 @@ Katch Studio is installable as a standalone app:
 - Install button appears in the header and Settings only when the browser supports installation
 - Service worker registers in production builds only (never interferes with Vite dev/HMR)
 
+## Team, Leads & Your Tasks (Employee Management)
+
+A native CRM section on top of the **single `profiles` structure** — employees ARE profiles
+(`id`, `name`, `role`, `status`, `phone`, `email`); there is deliberately no second employee table.
+Persisted through the same storage boundary (`localStorage` or Firestore
+`workspaces/{id}/profiles` + `/leads`), so the whole app keeps one source of truth.
+
+- **Team** (`/team`) — Admin-only Employee Management: add / edit / activate / deactivate,
+  with Active vs Total lead counts per employee. Employees are **never permanently deleted**;
+  deactivating keeps every lead and all history, and only removes the employee from new
+  assignment options.
+- **Leads** (`/leads`) — the assignment board. Lead Assignment offers **active employees only**;
+  **Auto Assignment** picks the least-busy active teammate. Leads held by deactivated teammates
+  keep their assignee (shown as “inactive”) and can be reassigned anytime.
+- **Your Tasks** (`/tasks`) — every active employee appears automatically with their active-lead
+  count (`Ahmed (3) · Mohamed (5) · Ali (0)`), plus a kept-history strip for deactivated teammates.
+- **Admin access** — management controls are visible only to Admin-role profiles. The sidebar
+  footer has an “acting as” switcher (a session identity, **not** an employee login) to exercise
+  admin vs member views.
+
 ## MVP vs. future (honest scope)
 
 **Works today:** dashboard, projects (search/filter/sort/duplicate/delete), the 4-step wizard,
@@ -73,6 +93,7 @@ full-screen preview with device controls, multi-page management, full content ed
 theme & brand customization, feature toggles, SEO panel, autosave, project duplication,
 template duplication (custom templates), 20 templates incl. E-commerce & SaaS,
 configuration + resolved-structure export, RTL/Arabic websites, demo data,
+**Employee Management (Team · Leads · Your Tasks, admin-gated)**,
 **Firestore sync (optional, env-gated — see `docs/FIREBASE.md`)**, **PWA install + offline shell**.
 
 **Planned (architected, not implemented):** automated scaffold generation (`client-project/`

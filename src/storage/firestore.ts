@@ -1,4 +1,4 @@
-import type { Project } from "@/types";
+import type { Lead, Profile, Project } from "@/types";
 import type { StorageSnapshot, StudioStorageAdapter } from "@/types/storage";
 
 /* ============================================================
@@ -11,6 +11,8 @@ import type { StorageSnapshot, StudioStorageAdapter } from "@/types/storage";
      workspaces/{workspaceId}/projects/{projectId}   — project configs
      workspaces/{workspaceId}/drafts/{projectId}     — unsaved editor drafts
      workspaces/{workspaceId}/meta/state             — last-opened + seeded flags
+     workspaces/{workspaceId}/profiles/{profileId}   — team members (employees)
+     workspaces/{workspaceId}/leads/{leadId}         — leads + assignment history
 
    The shape mirrors the StudioState model 1:1, so migrating
    between local ↔ cloud (and later per-team workspaces) never
@@ -65,6 +67,8 @@ export async function createFirestoreAdapter(config: FirestoreSetupConfig): Prom
   const ws = config.workspaceId || "katch-prod";
   const projectsRef = collection(db, "workspaces", ws, "projects");
   const draftsRef = collection(db, "workspaces", ws, "drafts");
+  const profilesRef = collection(db, "workspaces", ws, "profiles");
+  const leadsRef = collection(db, "workspaces", ws, "leads");
   const metaDoc = doc(db, "workspaces", ws, "meta", "state");
 
   /* ---------- Full-sync helper (create / update / delete reconciliation) ---------- */
@@ -117,10 +121,12 @@ export async function createFirestoreAdapter(config: FirestoreSetupConfig): Prom
   /* ---------- Read path + permission diagnostics ---------- */
 
   const loadSnapshot = async (): Promise<StorageSnapshot> => {
-    const [projectsSnap, draftsSnap, metaSnap] = await Promise.all([
+    const [projectsSnap, draftsSnap, metaSnap, profilesSnap, leadsSnap] = await Promise.all([
       getDocs(projectsRef),
       getDocs(draftsRef),
       getDoc(metaDoc),
+      getDocs(profilesRef),
+      getDocs(leadsRef),
     ]);
 
     const projects = projectsSnap.docs
@@ -135,6 +141,14 @@ export async function createFirestoreAdapter(config: FirestoreSetupConfig): Prom
     });
 
     const meta = metaSnap.exists() ? metaSnap.data() : {};
+    const profiles = profilesSnap.docs
+      .map((d) => d.data() as Profile)
+      .filter((p) => p && p.id && typeof p.name === "string")
+      .sort((a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""));
+    const leads = leadsSnap.docs
+      .map((d) => d.data() as Lead)
+      .filter((l) => l && l.id && typeof l.name === "string")
+      .sort((a, b) => (a.createdAt ?? "").localeCompare(b.createdAt ?? ""));
     return {
       projects,
       drafts,
@@ -142,6 +156,9 @@ export async function createFirestoreAdapter(config: FirestoreSetupConfig): Prom
       customTemplates: (meta.customTemplates as unknown as import("@/types").WebsiteTemplate[]) ?? [],
       seeded: Boolean(meta.seeded),
       projectCounter: (meta.projectCounter as number) ?? 0,
+      profiles,
+      leads,
+      crmSeeded: Boolean(meta.crmSeeded),
     };
   };
 
@@ -208,6 +225,27 @@ export async function createFirestoreAdapter(config: FirestoreSetupConfig): Prom
     async saveCustomTemplates(templates) {
       const { setDoc } = await import("firebase/firestore");
       await setDoc(metaDoc, { customTemplates: templates }, { merge: true });
+    },
+
+    async saveProfiles(profiles) {
+      await syncCollection(
+        db,
+        profilesRef,
+        profiles.map((p) => ({ id: p.id, data: p }))
+      );
+    },
+
+    async saveLeads(leads) {
+      await syncCollection(
+        db,
+        leadsRef,
+        leads.map((l) => ({ id: l.id, data: l }))
+      );
+    },
+
+    async markCrmSeeded() {
+      const { setDoc } = await import("firebase/firestore");
+      await setDoc(metaDoc, { crmSeeded: true }, { merge: true });
     },
 
     async markSeeded() {

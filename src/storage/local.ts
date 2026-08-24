@@ -1,4 +1,4 @@
-import type { Project, WebsiteTemplate } from "@/types";
+import type { Lead, Profile, Project, WebsiteTemplate } from "@/types";
 import type { StorageSnapshot, StudioStorageAdapter } from "@/types/storage";
 
 /* ============================================================
@@ -13,6 +13,9 @@ const KEYS = {
   customTemplates: "katch-studio:customTemplates:v1",
   seeded: "katch-studio:seeded:v1",
   counter: "katch-studio:project-counter",
+  profiles: "katch-studio:profiles:v1",
+  leads: "katch-studio:leads:v1",
+  crmSeeded: "katch-studio:crm-seeded:v1",
 } as const;
 
 function readJSON<T>(key: string, fallback: T): T {
@@ -44,6 +47,9 @@ export function createLocalStorageAdapter(): StudioStorageAdapter {
         lastOpenedProjectId: readJSON<string | null>(KEYS.lastOpened, null),
         customTemplates: readJSON<WebsiteTemplate[]>(KEYS.customTemplates, []),
         seeded: localStorage.getItem(KEYS.seeded) === "1",
+        profiles: readJSON<Profile[]>(KEYS.profiles, []),
+        leads: readJSON<Lead[]>(KEYS.leads, []),
+        crmSeeded: localStorage.getItem(KEYS.crmSeeded) === "1",
       };
     },
     async saveProjects(projects) {
@@ -69,6 +75,20 @@ export function createLocalStorageAdapter(): StudioStorageAdapter {
     async saveProjectCounter(counter) {
       try {
         localStorage.setItem(KEYS.counter, String(counter));
+      } catch {
+        /* non-critical */
+      }
+    },
+
+    async saveProfiles(profiles) {
+      writeJSON(KEYS.profiles, profiles);
+    },
+    async saveLeads(leads) {
+      writeJSON(KEYS.leads, leads);
+    },
+    async markCrmSeeded() {
+      try {
+        localStorage.setItem(KEYS.crmSeeded, "1");
       } catch {
         /* non-critical */
       }
