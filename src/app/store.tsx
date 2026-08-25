@@ -1,8 +1,27 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import type { Project, ProjectStatus, StudioState, WebsiteTemplate } from "@/types";
+import type {
+  EmployeeInput,
+  EmployeeStatus,
+  Lead,
+  LeadStatus,
+  Profile,
+  Project,
+  ProjectStatus,
+  StudioState,
+  WebsiteTemplate,
+} from "@/types";
+import { isAdminRole } from "@/types";
 import type { StorageSnapshot, StudioStorageAdapter } from "@/types/storage";
 import { createLocalStorageAdapter } from "@/storage/local";
 import { buildDemoProjects } from "@/data/demo";
+import { buildDemoLeads, buildDemoTeam } from "@/data/crmDemo";
+import {
+  buildLead,
+  createEmployee,
+  patchProfile,
+  pickAutoAssignee,
+  type EmployeeActionResult,
+} from "@/lib/crm";
 import { createProjectFromTemplate, duplicateProject as cloneProject, type CreateProjectInput } from "@/lib/projectFactory";
 import { TEMPLATES } from "@/data/templates";
 import { uid, getProjectCounter, setProjectCounter } from "@/utils/helpers";
@@ -47,6 +66,26 @@ async function resolveAdapter(): Promise<StudioStorageAdapter> {
 
 /* ---------- Store ---------- */
 
+/** Session identity ("acting as") — per-device, not workspace data. */
+const ACTING_AS_KEY = "katch-studio:acting-as:v1";
+
+function readActingAs(): string | null {
+  try {
+    return localStorage.getItem(ACTING_AS_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeActingAs(id: string | null): void {
+  try {
+    if (id) localStorage.setItem(ACTING_AS_KEY, id);
+    else localStorage.removeItem(ACTING_AS_KEY);
+  } catch {
+    /* non-critical */
+  }
+}
+
 export interface StudioStore extends StudioState {
   hydrated: boolean;
   storageKind: StudioStorageAdapter["kind"];
@@ -64,6 +103,39 @@ export interface StudioStore extends StudioState {
   resetDemoData: () => void;
   clearAllData: () => void;
   duplicateTemplate: (id: string) => WebsiteTemplate | undefined;
+
+  /* ---------- Team (Employee Management) ---------- */
+  /** The single employee structure — one Profile per employee. */
+  profiles: Profile[];
+  leads: Lead[];
+  /** Who this browser session is acting as (no employee login — a session identity). */
+  currentProfileId: string | null;
+  currentProfile: Profile | null;
+  /** True when acting as an Admin (or in a fresh workspace before any exists). */
+  isAdmin: boolean;
+  /** Admin only: create an employee (duplicate-safe). */
+  addEmployee: (input: EmployeeInput) => EmployeeActionResult;
+  /** Admin only: edit an employee — updates the SAME record, never a copy. */
+  updateEmployee: (id: string, patch: Partial<EmployeeInput>) => EmployeeActionResult;
+  /** Admin only: activate / deactivate. Never deletes, never touches leads. */
+  setEmployeeStatus: (id: string, status: EmployeeStatus) => void;
+  addLead: (input: {
+    name: string;
+    company?: string;
+    source?: string;
+    status?: LeadStatus;
+    assignedTo?: string | null;
+    notes?: string;
+  }) => Lead | null;
+  updateLead: (id: string, patch: Partial<Pick<Lead, "name" | "company" | "source" | "status" | "notes">>) => void;
+  /** Admin only: assign a lead — active employees only. */
+  assignLead: (leadId: string, profileId: string | null) => EmployeeActionResult;
+  /** Admin only: Auto Assignment — least-busy ACTIVE employee. */
+  autoAssignLead: (leadId: string) => EmployeeActionResult;
+  /** Admin only: Auto-assign every unassigned lead. Returns how many were assigned. */
+  autoAssignUnassigned: () => number;
+  /** Switch the session identity (used to demo admin vs member views). */
+  setCurrentProfile: (id: string) => void;
 }
 
 const StoreContext = createContext<StudioStore | null>(null);
@@ -77,6 +149,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [drafts, setDrafts] = useState<Record<string, Project>>({});
   const [customTemplates, setCustomTemplates] = useState<WebsiteTemplate[]>([]);
   const [lastOpenedProjectId, setLastOpenedProjectId] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
 
   /* Throttled sync-error reporting — never silently fail, never spam */
   const lastSyncErrorAt = useRef(0);
@@ -121,10 +196,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         active.markSeeded().catch(() => undefined);
       }
 
+      let loadedProfiles = snap?.profiles ?? [];
+      let loadedLeads = snap?.leads ?? [];
+      if (loadedProfiles.length === 0 && !snap?.crmSeeded) {
+        /* First run — seed the demo team + leads (Ahmed 3 · Mohamed 5 · Ali 0) */
+        loadedProfiles = buildDemoTeam();
+        loadedLeads = buildDemoLeads();
+        active.markCrmSeeded?.().catch(() => undefined);
+      }
+
       setProjects(loadedProjects);
       setDrafts(snap?.drafts ?? {});
       setCustomTemplates(snap?.customTemplates ?? []);
       setLastOpenedProjectId(snap?.lastOpenedProjectId ?? null);
+      setProfiles(loadedProfiles);
+      setLeads(loadedLeads);
+      /* Session identity: the stored pick, else the first Admin, else anyone. */
+      const storedActingAs = readActingAs();
+      const initialProfileId =
+        loadedProfiles.find((p) => p.id === storedActingAs)?.id ??
+        loadedProfiles.find((p) => isAdminRole(p.role))?.id ??
+        loadedProfiles[0]?.id ??
+        null;
+      setCurrentProfileId(initialProfileId);
       setAdapter(active);
       setHydrated(true);
 
@@ -162,6 +256,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (!hydrated || !adapter) return;
     adapter.saveCustomTemplates(customTemplates).catch(reportSyncError);
   }, [customTemplates, hydrated, adapter, reportSyncError]);
+
+  useEffect(() => {
+    if (!hydrated || !adapter) return;
+    adapter.saveProfiles?.(profiles).catch(reportSyncError);
+  }, [profiles, hydrated, adapter, reportSyncError]);
+
+  useEffect(() => {
+    if (!hydrated || !adapter) return;
+    adapter.saveLeads?.(leads).catch(reportSyncError);
+  }, [leads, hydrated, adapter, reportSyncError]);
 
   /* ---------- Actions ---------- */
 
@@ -243,9 +347,117 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
+  /* ---------- Team (Employee Management) actions ---------- */
+
+  /** Add Employee — admin only, duplicate-safe. */
+  const addEmployee = useCallback(
+    (input: EmployeeInput): EmployeeActionResult => {
+      const result = createEmployee(profiles, input);
+      if (!result.ok) return result;
+      setProfiles((prev) => [...prev, result.profile!]);
+      return result;
+    },
+    [profiles]
+  );
+
+  /** Edit Employee — patches the SAME profile record (never a duplicate). */
+  const updateEmployee = useCallback(
+    (id: string, patch: Partial<EmployeeInput>): EmployeeActionResult => {
+      const result = patchProfile(profiles, id, patch);
+      if (!result.ok) return result;
+      const updated = result.profile!;
+      setProfiles((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      return result;
+    },
+    [profiles]
+  );
+
+  /** Activate / Deactivate — leads and history are never touched. */
+  const setEmployeeStatus = useCallback((id: string, status: EmployeeStatus) => {
+    setProfiles((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, status, updatedAt: new Date().toISOString() } : p))
+    );
+  }, []);
+
+  const addLead = useCallback(
+    (input: { name: string; company?: string; source?: string; status?: LeadStatus; assignedTo?: string | null; notes?: string }) => {
+      const lead = buildLead(input, profiles);
+      if (lead) setLeads((prev) => [lead, ...prev]);
+      return lead;
+    },
+    [profiles]
+  );
+
+  const updateLead = useCallback(
+    (id: string, patch: Partial<Pick<Lead, "name" | "company" | "source" | "status" | "notes">>) => {
+      setLeads((prev) =>
+        prev.map((l) => (l.id === id ? { ...l, ...patch, updatedAt: new Date().toISOString() } : l))
+      );
+    },
+    []
+  );
+
+  /** Assign a lead — only ACTIVE employees are valid targets. */
+  const assignLead = useCallback(
+    (leadId: string, profileId: string | null): EmployeeActionResult => {
+      if (profileId) {
+        const target = profiles.find((p) => p.id === profileId);
+        if (!target) return { ok: false, error: "Employee not found." };
+        if (target.status !== "active")
+          return { ok: false, error: `${target.name} is inactive — reassign to an active employee.` };
+      }
+      setLeads((prev) =>
+        prev.map((l) => (l.id === leadId ? { ...l, assignedTo: profileId, updatedAt: new Date().toISOString() } : l))
+      );
+      return { ok: true, profile: profileId ? profiles.find((p) => p.id === profileId) : undefined };
+    },
+    [profiles]
+  );
+
+  /** Auto Assignment — least-busy ACTIVE employee; inactive never picked. */
+  const autoAssignLead = useCallback(
+    (leadId: string): EmployeeActionResult => {
+      const pick = pickAutoAssignee(profiles, leads);
+      if (!pick) return { ok: false, error: "No active employees to assign to." };
+      setLeads((prev) =>
+        prev.map((l) => (l.id === leadId ? { ...l, assignedTo: pick.id, updatedAt: new Date().toISOString() } : l))
+      );
+      return { ok: true, profile: pick };
+    },
+    [profiles, leads]
+  );
+
+  const autoAssignUnassigned = useCallback((): number => {
+    const unassigned = leads.filter((l) => l.assignedTo === null);
+    if (unassigned.length === 0) return 0;
+    /* Assign sequentially, recomputing the least-busy pick so the load stays even. */
+    let working = [...leads];
+    let count = 0;
+    for (const lead of unassigned) {
+      const pick = pickAutoAssignee(profiles, working);
+      if (!pick) break;
+      working = working.map((l) =>
+        l.id === lead.id ? { ...l, assignedTo: pick.id, updatedAt: new Date().toISOString() } : l
+      );
+      count += 1;
+    }
+    if (count > 0) setLeads(working);
+    return count;
+  }, [profiles, leads]);
+
+  const setCurrentProfile = useCallback(
+    (id: string) => {
+      setCurrentProfileId(id);
+      writeActingAs(id);
+    },
+    []
+  );
+
   const resetDemoData = useCallback(() => {
     setProjects(buildDemoProjects());
     setDrafts({});
+    setProfiles(buildDemoTeam());
+    setLeads(buildDemoLeads());
   }, []);
 
   const clearAllData = useCallback(() => {
@@ -253,6 +465,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setDrafts({});
     setCustomTemplates([]);
     setLastOpenedProjectId(null);
+    setProfiles([]);
+    setLeads([]);
+    setCurrentProfileId(null);
+    writeActingAs(null);
   }, []);
 
   const duplicateTemplate = useCallback(
@@ -276,6 +492,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [customTemplates]
   );
 
+  const currentProfile = useMemo(
+    () => profiles.find((p) => p.id === currentProfileId) ?? null,
+    [profiles, currentProfileId]
+  );
+
+  /* Admin = acting as an Admin profile. A wiped workspace (no profiles yet)
+     stays admin-enabled so the first employee can always be added. */
+  const isAdmin = !currentProfile || isAdminRole(currentProfile.role);
+
   const value = useMemo<StudioStore>(
     () => ({
       hydrated,
@@ -296,6 +521,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       resetDemoData,
       clearAllData,
       duplicateTemplate,
+      profiles,
+      leads,
+      currentProfileId,
+      currentProfile,
+      isAdmin,
+      addEmployee,
+      updateEmployee,
+      setEmployeeStatus,
+      addLead,
+      updateLead,
+      assignLead,
+      autoAssignLead,
+      autoAssignUnassigned,
+      setCurrentProfile,
     }),
     [
       hydrated,
@@ -315,6 +554,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       clearAllData,
       duplicateTemplate,
       allTemplates,
+      profiles,
+      leads,
+      currentProfileId,
+      currentProfile,
+      isAdmin,
+      addEmployee,
+      updateEmployee,
+      setEmployeeStatus,
+      addLead,
+      updateLead,
+      assignLead,
+      autoAssignLead,
+      autoAssignUnassigned,
+      setCurrentProfile,
     ]
   );
 

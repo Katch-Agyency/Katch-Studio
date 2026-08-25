@@ -1,3 +1,4 @@
+import type { Lead, Profile } from "./crm";
 import type { Project, WebsiteTemplate } from "./project";
 
 /* ============================================================
@@ -17,6 +18,12 @@ export interface StorageSnapshot {
   seeded: boolean;
   /** Sequential project counter for generating #001, #002, etc. */
   projectCounter?: number;
+  /** Team members (the single employee structure). Optional: older snapshots predate the CRM. */
+  profiles?: Profile[];
+  /** Leads assigned to team members. Optional: older snapshots predate the CRM. */
+  leads?: Lead[];
+  /** True once the demo team + leads have been seeded. */
+  crmSeeded?: boolean;
 }
 
 export interface StudioStorageAdapter {
@@ -30,4 +37,9 @@ export interface StudioStorageAdapter {
   saveCustomTemplates(templates: WebsiteTemplate[]): Promise<void>;
   saveProjectCounter?(counter: number): Promise<void>;
   markSeeded(): Promise<void>;
+  /** Team members — the single employee/profile record. */
+  saveProfiles?(profiles: Profile[]): Promise<void>;
+  /** Leads (assignment history is never rewritten by deactivation). */
+  saveLeads?(leads: Lead[]): Promise<void>;
+  markCrmSeeded?(): Promise<void>;
 }

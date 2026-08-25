@@ -8,6 +8,8 @@ service cloud.firestore {
     // Data layout (per workspace):
     //   workspaces/{workspaceId}/projects/{projectId}  — project configs
     //   workspaces/{workspaceId}/drafts/{projectId}    — unsaved editor drafts
+    //   workspaces/{workspaceId}/profiles/{profileId}  — team members (employees)
+    //   workspaces/{workspaceId}/leads/{leadId}        — leads + assignment history
     //   workspaces/{workspaceId}/meta/state            — last-opened + seeded flags
     //
     // The recursive {document=**} wildcard makes this rule cover the

@@ -1,19 +1,23 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   Building2,
+  Check,
   ChevronsLeft,
   ChevronsRight,
   Component,
   FolderKanban,
   LayoutDashboard,
   LayoutTemplate,
+  ListTodo,
   Menu,
   Moon,
   Package,
   Search,
   Settings,
   Sun,
+  Target,
+  Users,
   X,
 } from "lucide-react";
 import { Logo, LogoMark } from "./Logo";
@@ -21,6 +25,7 @@ import CommandPalette, { PALETTE_OPEN_EVENT } from "./CommandPalette";
 import CloudStatusBanner from "./CloudStatusBanner";
 import PwaStatus, { InstallButton } from "./PwaStatus";
 import { useStudioTheme } from "@/app/theme";
+import { useStore } from "@/app/store";
 import { Avatar, Kbd } from "@/components/ui/ui";
 import { cn } from "@/utils/helpers";
 
@@ -32,7 +37,14 @@ import { cn } from "@/utils/helpers";
 
 const NAV_GROUPS: {
   label: string;
-  items: { to: string; label: string; icon: React.ComponentType<{ className?: string }>; end?: boolean }[];
+  items: {
+    to: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    end?: boolean;
+    /** Employee Management is admin-only — members never see it. */
+    adminOnly?: boolean;
+  }[];
 }[] = [
   {
     label: "Workspace",
@@ -41,6 +53,14 @@ const NAV_GROUPS: {
       { to: "/projects", label: "Projects", icon: FolderKanban },
       { to: "/templates", label: "Templates", icon: LayoutTemplate },
       { to: "/sections", label: "Sections", icon: Package },
+    ],
+  },
+  {
+    label: "Team",
+    items: [
+      { to: "/team", label: "Team", icon: Users, adminOnly: true },
+      { to: "/leads", label: "Leads", icon: Target },
+      { to: "/tasks", label: "Your Tasks", icon: ListTodo },
     ],
   },
   {
@@ -55,6 +75,114 @@ const NAV_GROUPS: {
 
 const RAIL_KEY = "katch-studio:rail:v1";
 
+/* ============================================================
+   Session identity — "acting as". NOT an employee login: it
+   selects which teammate this browser session acts as, so
+   Admin vs regular-member views can be exercised. Admins get
+   the Employee Management controls; members don't.
+   ============================================================ */
+
+function IdentityMenu({
+  profiles,
+  currentProfile,
+  onSelect,
+  compact,
+  className,
+}: {
+  profiles: ReturnType<typeof useStore>["profiles"];
+  currentProfile: ReturnType<typeof useStore>["currentProfile"];
+  onSelect: (id: string) => void;
+  compact?: boolean;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const name = currentProfile?.name ?? "Katch Team";
+  const roleLabel = currentProfile ? currentProfile.role : "Workspace admin";
+
+  return (
+    <div className={cn("relative min-w-0 flex-1", className)} ref={ref}>
+      <button
+        type="button"
+        className={cn(
+          "flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-surface-2",
+          compact && "justify-center px-0"
+        )}
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label="Switch acting profile"
+        title="Switch acting profile"
+      >
+        <Avatar name={name} size={30} />
+        {!compact && (
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-medium text-ink">{name}</span>
+            <span className="block truncate text-[11px] text-ink-faint">{roleLabel}</span>
+          </span>
+        )}
+        {!compact && <ChevronsRight className="h-3.5 w-3.5 shrink-0 rotate-90 text-ink-faint" aria-hidden />}
+      </button>
+
+      {open && (
+        <div
+          role="menu"
+          aria-label="Acting profile"
+          className="absolute bottom-full left-0 z-40 mb-2 w-56 overflow-hidden rounded-xl border border-line bg-surface-1 shadow-pop"
+        >
+          <p className="border-b border-line px-3 py-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
+            Acting as
+          </p>
+          <div className="max-h-64 overflow-y-auto py-1">
+            {profiles.length === 0 && (
+              <p className="px-3 py-2 text-xs text-ink-faint">No employees yet.</p>
+            )}
+            {profiles.map((p) => (
+              <button
+                key={p.id}
+                role="menuitem"
+                type="button"
+                disabled={p.status !== "active"}
+                onClick={() => {
+                  onSelect(p.id);
+                  setOpen(false);
+                }}
+                className={cn(
+                  "flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-40",
+                  currentProfile?.id === p.id && "bg-brand-muted/40"
+                )}
+              >
+                <Avatar name={p.name} size={24} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] font-medium text-ink">{p.name}</span>
+                  <span className="block truncate text-[10.5px] text-ink-faint">
+                    {p.role}
+                    {p.status !== "active" && " · inactive"}
+                  </span>
+                </span>
+                {currentProfile?.id === p.id && <Check className="h-3.5 w-3.5 shrink-0 text-brand-hover" aria-hidden />}
+              </button>
+            ))}
+          </div>
+          <p className="border-t border-line px-3 py-2 text-[10.5px] leading-4 text-ink-faint">
+            Session identity for role-based views — not an employee login.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AppLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [rail, setRail] = useState<boolean>(() => {
@@ -66,6 +194,16 @@ export default function AppLayout() {
   });
   const { theme, toggle } = useStudioTheme();
   const location = useLocation();
+  const { profiles, currentProfile, isAdmin, setCurrentProfile } = useStore();
+
+  const navGroups = useMemo(
+    () =>
+      NAV_GROUPS.map((group) => ({
+        ...group,
+        items: group.items.filter((item) => !item.adminOnly || isAdmin),
+      })).filter((group) => group.items.length > 0),
+    [isAdmin]
+  );
 
   useEffect(() => setDrawerOpen(false), [location.pathname]);
 
@@ -114,7 +252,7 @@ export default function AppLayout() {
 
       {/* Grouped nav */}
       <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-3" aria-label="Main">
-        {NAV_GROUPS.map((group) => (
+        {navGroups.map((group) => (
           <div key={group.label}>
             {!rail && (
               <p className="mb-1.5 px-2 text-[10.5px] font-semibold uppercase tracking-[0.14em] text-ink-faint">
@@ -150,18 +288,20 @@ export default function AppLayout() {
       {/* Footer */}
       <div className="border-t border-line p-3">
         {!rail ? (
-          <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
-            <Avatar name="Katch Studio" size={30} />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-medium text-ink">Katch Team</span>
-              <span className="block truncate text-[11px] text-ink-faint">Workspace admin</span>
-            </span>
+          <div className="flex items-center gap-1">
+            <IdentityMenu
+              profiles={profiles}
+              currentProfile={currentProfile}
+              onSelect={setCurrentProfile}
+              className="flex-1"
+            />
             <button className="btn-icon-sm" onClick={toggle} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
+            <IdentityMenu profiles={profiles} currentProfile={currentProfile} onSelect={setCurrentProfile} compact />
             <button className="btn-icon-sm" onClick={toggle} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
               {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
@@ -233,7 +373,7 @@ export default function AppLayout() {
           <button className="btn-icon" onClick={toggle} aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}>
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
-          <Avatar name="Katch Studio" size={30} />
+          <Avatar name={currentProfile?.name ?? "Katch Studio"} size={30} />
         </header>
 
         {/* Deployed-but-not-connected warning (invisible on localhost / when Firestore is active) */}

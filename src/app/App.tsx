@@ -18,6 +18,9 @@ const Sections = lazy(() => import("@/pages/Sections"));
 const DesignSystem = lazy(() => import("@/pages/DesignSystem"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const Preview = lazy(() => import("@/pages/Preview"));
+const Team = lazy(() => import("@/pages/team/Team"));
+const Leads = lazy(() => import("@/pages/leads/Leads"));
+const Tasks = lazy(() => import("@/pages/tasks/Tasks"));
 
 function PageLoader() {
   return (
@@ -62,6 +65,9 @@ export default function App() {
           <Route path="editor/:projectId" element={<Editor />} />
           <Route path="templates" element={<Templates />} />
           <Route path="sections" element={<Sections />} />
+          <Route path="team" element={<Team />} />
+          <Route path="leads" element={<Leads />} />
+          <Route path="tasks" element={<Tasks />} />
           <Route path="design-system" element={<DesignSystem />} />
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />

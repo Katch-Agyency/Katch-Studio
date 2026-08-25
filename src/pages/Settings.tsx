@@ -25,7 +25,7 @@ const ROADMAP = [
 ];
 
 export default function Settings() {
-  const { projects, resetDemoData, clearAllData, storageKind, storageLabel } = useStore();
+  const { projects, resetDemoData, clearAllData, storageKind, storageLabel, currentProfile, profiles, leads } = useStore();
   const { theme, toggle } = useStudioTheme();
   const { toast } = useToast();
   const [confirmReset, setConfirmReset] = useState(false);
@@ -58,7 +58,14 @@ export default function Settings() {
           <div>
             <p className="label">Member</p>
             <p className="rounded-lg border border-line bg-surface-0/50 px-3 py-2 text-sm text-ink">
-              Katch Team <span className="text-ink-faint">(workspace admin)</span>
+              {currentProfile ? currentProfile.name : "Katch Team"}{" "}
+              <span className="text-ink-faint">
+                ({currentProfile ? currentProfile.role.toLowerCase() : "workspace admin"})
+              </span>
+            </p>
+            <p className="mt-1 text-xs text-ink-faint">
+              Team: {profiles.length} employee{profiles.length === 1 ? "" : "s"} · {leads.length} lead
+              {leads.length === 1 ? "" : "s"} — manage them under Team, Leads and Your Tasks.
             </p>
           </div>
         </div>

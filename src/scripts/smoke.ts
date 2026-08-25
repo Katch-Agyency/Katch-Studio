@@ -148,5 +148,56 @@ assert(st2.variant === "editorial" && st2.styles.spacing === "xl", "variant + st
 const allVariants = SECTION_TYPES.filter((t) => SECTION_DEFINITIONS[t].variants?.length);
 assert(allVariants.length >= 10, `variants defined for 10+ section types (${allVariants.length})`);
 
+console.log("\n12) Employee Management (CRM domain rules)");
+const { buildDemoTeam, buildDemoLeads } = await import("@/data/crmDemo");
+const {
+  createEmployee,
+  patchProfile,
+  assignableEmployees,
+  pickAutoAssignee,
+  activeLeadCount,
+  totalLeadCount,
+} = await import("@/lib/crm");
+
+const team = buildDemoTeam();
+const demoLeads = buildDemoLeads();
+assert(team.length === 4, "demo team has 4 employees");
+const ahmed = team.find((p) => p.id === "emp-ahmed")!;
+const mohamed = team.find((p) => p.id === "emp-mohamed")!;
+const ali = team.find((p) => p.id === "emp-ali")!;
+assert(activeLeadCount(demoLeads, ahmed.id) === 3, "Ahmed: 3 active leads");
+assert(totalLeadCount(demoLeads, ahmed.id) === 4, "Ahmed: 4 total leads");
+assert(activeLeadCount(demoLeads, mohamed.id) === 5, "Mohamed: 5 active leads");
+assert(activeLeadCount(demoLeads, ali.id) === 0 && totalLeadCount(demoLeads, ali.id) === 2, "Ali: 0 active / 2 historical");
+
+/* Add Employee — duplicate guard */
+const added = createEmployee(team, { name: "Sara Khaled", role: "Sales", status: "active", phone: "", email: "" });
+assert(added.ok && added.profile!.status === "active", "new employee defaults to Active");
+const dup = createEmployee([...team, added.profile!], { name: "sara khaled", role: "Sales", status: "active" });
+assert(!dup.ok && (dup.error ?? "").includes("already exists"), "duplicate employee name rejected");
+const noname = createEmployee(team, { name: "   ", role: "Sales", status: "active" });
+assert(!noname.ok, "empty name rejected");
+
+/* Edit Employee — same record, no duplicate */
+const edited = patchProfile([...team, added.profile!], added.profile!.id, { name: "Sara El Masry", role: "Manager" });
+assert(edited.ok && edited.profile!.id === added.profile!.id && edited.profile!.role === "Manager", "edit patches the same record in place");
+
+/* Deactivation: excluded from assignment, leads untouched */
+const withInactive = [...team, { ...added.profile!, name: "Sara El Masry", status: "inactive" as const }];
+assert(assignableEmployees(withInactive).length === 4, "inactive employee not assignable");
+assert(
+  pickAutoAssignee(withInactive, demoLeads)?.id !== added.profile!.id,
+  "auto-assignment never picks an inactive employee"
+);
+assert(activeLeadCount(demoLeads, ahmed.id) === 3, "leads untouched by deactivation elsewhere");
+/* Least-busy pick: Ziad (0 active, earliest created) wins the tie over Ali; Ahmed (3) is last */
+const pick1 = pickAutoAssignee(team, demoLeads);
+assert(pick1?.id === team[0]!.id, "auto-assignment prefers the least-busy active employee (0 active, earliest)");
+const noActive = team.map((p) => ({ ...p, status: "inactive" as const }));
+assert(pickAutoAssignee(noActive, demoLeads) === null, "no active employees → auto-assignment returns null");
+/* Reactivation restores eligibility */
+const reactivated = team.map((p) => (p.id === ali.id ? { ...p, status: "active" as const } : p));
+assert(assignableEmployees(reactivated).length === 4, "reactivated employee assignable again");
+
 console.log(`\n${failures === 0 ? "ALL CHECKS PASSED" : failures + " CHECKS FAILED"}`);
 process.exit(failures === 0 ? 0 : 1);
